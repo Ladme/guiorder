@@ -236,7 +236,9 @@ impl eframe::App for GuiAnalysis {
 
                     ui.horizontal(|ui| {
                         ui.vertical_centered(|ui| {
-                            let mut input_yaml = if ui.button("📁 Import from YAML").clicked() {
+                            let mut input_yaml = if ui.button("📁 Import from YAML").on_hover_ui(|ui| {
+                                ui.label("Load a YAML configuration file.");
+                            }).clicked() {
                                 if let Some(path) = rfd::FileDialog::new().pick_file() {
                                     Some(path.display().to_string())
                                 } else {
@@ -250,17 +252,25 @@ impl eframe::App for GuiAnalysis {
 
                     ui.separator();
 
-                    GuiAnalysis::specify_input_file(&mut self.structure, ui, "Structure:   ", true);
+                    GuiAnalysis::specify_input_file(
+                        &mut self.structure,
+                        ui,
+                        "Structure:   ",
+                        "Path to a file containing the structure of the system.",
+                        true,
+                    );
                     GuiAnalysis::specify_input_file(
                         &mut self.trajectory,
                         ui,
                         "Trajectory:  ",
+                        "Path to a file containing the trajectory to analyze.",
                         true,
                     );
                     GuiAnalysis::specify_output_file(
                         &mut self.output.output_yaml,
                         ui,
                         "Output YAML: ",
+                        "Path to an output YAML file where the full results of the analysis will be saved.",
                         true,
                     );
 
@@ -275,7 +285,9 @@ impl eframe::App for GuiAnalysis {
                     ui.separator();
                     ui.horizontal(|ui| {
                         ui.add_space(54.0);
-                        if ui.button("📁 Export to YAML").clicked() {
+                        if ui.button("📁 Export to YAML").on_hover_ui(|ui| {
+                            ui.label("Export the analysis options into a YAML configuration file.");
+                        }).clicked() {
                             if let Some(path) = rfd::FileDialog::new().save_file() {
                                 // todo; convert and export parameters
                             }
@@ -285,9 +297,9 @@ impl eframe::App for GuiAnalysis {
                         ui.separator();
                         ui.add_space(54.0);
 
-                        if ui.button("🔥 Run the analysis").clicked() {
+                        if Self::smart_button(ui, self.check_sanity(), "🔥 Run the analysis", "Perform the analysis using the specified options.", "Cannot run the analysis because some options are missing.").clicked() {
                             // todo; convert and run
-                        }
+                        };
                     });
 
                     ui.separator();
@@ -297,9 +309,20 @@ impl eframe::App for GuiAnalysis {
 }
 
 impl GuiAnalysis {
-    fn specify_input_file(target: &mut String, ui: &mut Ui, label: &str, required: bool) {
+    fn specify_input_file(
+        target: &mut String,
+        ui: &mut Ui,
+        label: &str,
+        hint: &str,
+        required: bool,
+    ) {
         ui.horizontal(|ui| {
-            let label = ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)));
+            let label = ui
+                .label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label(hint);
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
             if required && target.is_empty() {
                 ui.add(
                     egui::TextEdit::singleline(target)
@@ -320,9 +343,20 @@ impl GuiAnalysis {
         });
     }
 
-    fn specify_output_file(target: &mut String, ui: &mut Ui, label: &str, required: bool) {
+    fn specify_output_file(
+        target: &mut String,
+        ui: &mut Ui,
+        label: &str,
+        hint: &str,
+        required: bool,
+    ) {
         ui.horizontal(|ui| {
-            let label = ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)));
+            let label = ui
+                .label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label(hint);
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
             if required && target.is_empty() {
                 ui.add(
                     egui::TextEdit::singleline(target)
@@ -342,9 +376,14 @@ impl GuiAnalysis {
         });
     }
 
-    fn specify_string(target: &mut String, ui: &mut Ui, label: &str, required: bool) {
+    fn specify_string(target: &mut String, ui: &mut Ui, label: &str, hint: &str, required: bool) {
         ui.horizontal(|ui| {
-            let label = ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)));
+            let label = ui
+                .label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label(hint);
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
             if required && target.is_empty() {
                 ui.add(
                     egui::TextEdit::singleline(target)
@@ -360,7 +399,11 @@ impl GuiAnalysis {
 
     fn specify_analysis_type(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Analysis type: ").font(egui::FontId::monospace(12.0)));
+            ui.label(RichText::new("Analysis type: ").font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Type of analysis to be performed.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
             ui.radio_value(&mut self.analysis_type, AnalysisType::AAOrder, "atomistic");
             ui.radio_value(
                 &mut self.analysis_type,
@@ -380,12 +423,14 @@ impl GuiAnalysis {
                     &mut self.analysis_type_params.aa_params.heavy_atoms,
                     ui,
                     "Heavy atoms: ",
+                    "Selection of heavy atoms to be used in the analysis.",
                     true,
                 );
                 Self::specify_string(
                     &mut self.analysis_type_params.aa_params.hydrogens,
                     ui,
                     "Hydrogens:   ",
+                    "Selection of hydrogens to be used in the analysis.",
                     true,
                 );
             }
@@ -395,18 +440,21 @@ impl GuiAnalysis {
                     &mut self.analysis_type_params.ua_params.saturated,
                     ui,
                     "Saturated carbons:   ",
+                    "Selection of saturated carbons to be used in the analysis.",
                     true,
                 );
                 Self::specify_string(
                     &mut self.analysis_type_params.ua_params.unsaturated,
                     ui,
                     "Unsaturated carbons: ",
+                    "Selection of unsaturated carbons to be used in the analysis.",
                     true,
                 );
                 Self::specify_string(
                     &mut self.analysis_type_params.ua_params.ignore,
                     ui,
                     "Ignore:              ",
+                    "Selection of atoms to be ignored. (Optional)",
                     false,
                 );
             }
@@ -415,6 +463,7 @@ impl GuiAnalysis {
                     &mut self.analysis_type_params.cg_params.beads,
                     ui,
                     "Beads: ",
+                    "Selection of lipid beads to be used in the analysis.",
                     true,
                 );
             }
@@ -423,16 +472,46 @@ impl GuiAnalysis {
 
     fn specify_advanced_input(&mut self, ui: &mut Ui) {
         ui.collapsing("Advanced input options", |ui| {
-            Self::specify_input_file(&mut self.bonds, ui, "Bonds file:   ", false);
-            Self::specify_input_file(&mut self.ndx, ui, "NDX file:     ", false);
+            Self::specify_input_file(
+                &mut self.bonds,
+                ui,
+                "Bonds file:   ",
+                "Path to a file containing information about the bonds of the system. (Optional)",
+                false,
+            );
+            Self::specify_input_file(
+                &mut self.ndx,
+                ui,
+                "NDX file:     ",
+                "Path to an NDX file containing the groups associated with the system. (Optional)",
+                false,
+            );
         });
     }
 
     fn specify_advanced_output(&mut self, ui: &mut Ui) {
         ui.collapsing("Advanced output options", |ui| {
-            Self::specify_output_file(&mut self.output.output_csv, ui, "Output CSV:   ", false);
-            Self::specify_output_file(&mut self.output.output_tab, ui, "Output Table: ", false);
-            Self::specify_output_file(&mut self.output.output_xvg, ui, "Output XVG:   ", false);
+            Self::specify_output_file(
+                &mut self.output.output_csv,
+                ui,
+                "Output CSV:   ",
+                "Path to an output CSV file where the results will be saved. (Optional)",
+                false,
+            );
+            Self::specify_output_file(
+                &mut self.output.output_tab,
+                ui,
+                "Output Table: ",
+                "Path to an output \"table\" file where the results will be saved. (Optional)",
+                false,
+            );
+            Self::specify_output_file(
+                &mut self.output.output_xvg,
+                ui,
+                "Output XVG:   ",
+                "Filename pattern for output XVG files where the results will be saved. (Optional)",
+                false,
+            );
         });
     }
 
@@ -452,9 +531,29 @@ impl GuiAnalysis {
         response
     }
 
+    fn smart_button(
+        ui: &mut Ui,
+        enabled: bool,
+        text: &str,
+        enabled_hint: &str,
+        disabled_hint: &str,
+    ) -> egui::Response {
+        ui.add_enabled(enabled, egui::Button::new(text))
+            .on_hover_ui(|ui| {
+                ui.label(enabled_hint);
+            })
+            .on_disabled_hover_ui(|ui| {
+                ui.label(disabled_hint);
+            })
+    }
+
     fn specify_frequency(frequency: &mut Frequency, ui: &mut Ui, label: &str) {
         ui.horizontal(|ui| {
-            ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)));
+            ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Frequency of the leaflet assignment.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
 
             let (mut raw_frequency, mut n) = match frequency {
                 Frequency::Once => (RawFrequency::Once, 0),
@@ -498,7 +597,11 @@ impl GuiAnalysis {
 
         ui.collapsing(text, |ui| {
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Assignment method: ").font(egui::FontId::monospace(12.0)));
+                ui.label(RichText::new("Assignment method: ").font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {
+                        ui.label("Method to be used for assigning lipids into membrane leaflets.");
+                    })
+                    .on_hover_cursor(egui::CursorIcon::Help);
                 egui::ComboBox::from_label("")
                     .selected_text(format!("{}", self.leaflet_classification_method))
                     .show_ui(ui, |ui| {
@@ -535,12 +638,14 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.global_params.membrane,
                         ui,
                         "Membrane:    ",
+                        "Selection of all lipid atoms forming the membrane.",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.global_params.heads,
                         ui,
                         "Lipid heads: ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
                     Self::specify_frequency(
@@ -554,19 +659,26 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.local_params.membrane,
                         ui,
                         "Membrane:    ",
+                        "Selection of all lipid atoms forming the membrane.",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.local_params.heads,
                         ui,
                         "Lipid heads: ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
 
                     ui.horizontal(|ui| {
-                        let label = ui.label(
-                            RichText::new("Radius:      ").font(egui::FontId::monospace(12.0)),
-                        );
+                        let label = ui
+                            .label(
+                                RichText::new("Radius:      ").font(egui::FontId::monospace(12.0)),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label("Radius of the cylinder [nm] for the calculation of local membrane center.");
+                            })
+                            .on_hover_cursor(egui::CursorIcon::Help);
 
                         ui.add(
                             egui::DragValue::new(
@@ -589,12 +701,14 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.individual_params.heads,
                         ui,
                         "Lipid heads:   ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.individual_params.methyls,
                         ui,
                         "Lipid methyls: ",
+                        "Selection of lipid atoms representing ends of lipid tails.",
                         true,
                     );
 
@@ -609,6 +723,7 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.clustering_params.heads,
                         ui,
                         "Lipid heads: ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
 
@@ -623,6 +738,7 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.from_file_params.file,
                         ui,
                         "Input file:  ",
+                        "Path to a leaflet assignment file.",
                         true,
                     );
 
@@ -637,12 +753,14 @@ impl GuiAnalysis {
                         &mut self.leaflet_classification_params.from_ndx_params.heads,
                         ui,
                         "Lipid heads:   ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
                     Self::specify_input_file(
                         &mut self.leaflet_classification_params.from_ndx_params.ndx,
                         ui,
                         "NDX file:      ",
+                        "Path to an NDX file specifying the leaflets.",
                         true,
                     );
                     Self::specify_string(
@@ -652,6 +770,7 @@ impl GuiAnalysis {
                             .upper_leaflet,
                         ui,
                         "Upper leaflet: ",
+                        "Name of the NDX group containing atoms of the upper membrane leaflet.",
                         true,
                     );
                     Self::specify_string(
@@ -661,6 +780,7 @@ impl GuiAnalysis {
                             .lower_leaflet,
                         ui,
                         "Lower leaflet: ",
+                        "Name of the NDX group containing atoms of the lower membrane leaflet.",
                         true,
                     );
 
@@ -672,6 +792,15 @@ impl GuiAnalysis {
                 }
             });
         });
+    }
+
+    /// Check that all options required for the analysis have been provided.
+    fn check_sanity(&self) -> bool {
+        self.check_leaflets_sanity()
+            && self.check_analysis_params_sanity()
+            && !self.structure.is_empty()
+            && !self.trajectory.is_empty()
+            && !self.output.output_yaml.is_empty()
     }
 
     /// Check that all required options for leaflet assignment have been provided.
@@ -703,6 +832,21 @@ impl GuiAnalysis {
                 .leaflet_classification_params
                 .from_ndx_params
                 .sanity_check(),
+        }
+    }
+
+    /// Check that all required options for analysis type have been provided.
+    fn check_analysis_params_sanity(&self) -> bool {
+        match self.analysis_type {
+            AnalysisType::AAOrder => {
+                !self.analysis_type_params.aa_params.heavy_atoms.is_empty()
+                    && !self.analysis_type_params.aa_params.hydrogens.is_empty()
+            }
+            AnalysisType::CGOrder => !self.analysis_type_params.cg_params.beads.is_empty(),
+            AnalysisType::UAOrder => {
+                !self.analysis_type_params.ua_params.saturated.is_empty()
+                    && !self.analysis_type_params.ua_params.unsaturated.is_empty()
+            }
         }
     }
 }
