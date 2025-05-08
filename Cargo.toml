@@ -1,0 +1,9 @@
+[package]
+name = "guiorder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.31.1"
+gorder = "0.7.1"
+rfd = "0.15.3"
