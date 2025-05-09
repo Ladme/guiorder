@@ -295,7 +295,7 @@ impl eframe::App for GuiAnalysis {
 
                         ui.add_space(54.0);
                         ui.separator();
-                        ui.add_space(54.0);
+                        ui.add_space(46.0);
 
                         if Self::smart_button(ui, self.check_sanity(), "🔥 Run the analysis", "Perform the analysis using the specified options.", "Cannot run the analysis because some options are missing.").clicked() {
                             // todo; convert and run
@@ -471,48 +471,54 @@ impl GuiAnalysis {
     }
 
     fn specify_advanced_input(&mut self, ui: &mut Ui) {
-        ui.collapsing("Advanced input options", |ui| {
-            Self::specify_input_file(
+        ui.collapsing(
+            RichText::new("Advanced input").font(egui::FontId::monospace(12.0)),
+            |ui| {
+                Self::specify_input_file(
                 &mut self.bonds,
                 ui,
                 "Bonds file:   ",
                 "Path to a file containing information about the bonds of the system. (Optional)",
                 false,
             );
-            Self::specify_input_file(
+                Self::specify_input_file(
                 &mut self.ndx,
                 ui,
                 "NDX file:     ",
                 "Path to an NDX file containing the groups associated with the system. (Optional)",
                 false,
             );
-        });
+            },
+        );
     }
 
     fn specify_advanced_output(&mut self, ui: &mut Ui) {
-        ui.collapsing("Advanced output options", |ui| {
-            Self::specify_output_file(
-                &mut self.output.output_csv,
-                ui,
-                "Output CSV:   ",
-                "Path to an output CSV file where the results will be saved. (Optional)",
-                false,
-            );
-            Self::specify_output_file(
-                &mut self.output.output_tab,
-                ui,
-                "Output Table: ",
-                "Path to an output \"table\" file where the results will be saved. (Optional)",
-                false,
-            );
-            Self::specify_output_file(
+        ui.collapsing(
+            RichText::new("Advanced output").font(egui::FontId::monospace(12.0)),
+            |ui| {
+                Self::specify_output_file(
+                    &mut self.output.output_csv,
+                    ui,
+                    "Output CSV:   ",
+                    "Path to an output CSV file where the results will be saved. (Optional)",
+                    false,
+                );
+                Self::specify_output_file(
+                    &mut self.output.output_tab,
+                    ui,
+                    "Output Table: ",
+                    "Path to an output \"table\" file where the results will be saved. (Optional)",
+                    false,
+                );
+                Self::specify_output_file(
                 &mut self.output.output_xvg,
                 ui,
                 "Output XVG:   ",
                 "Filename pattern for output XVG files where the results will be saved. (Optional)",
                 false,
             );
-        });
+            },
+        );
     }
 
     fn toggle_radio<T: PartialEq + Clone>(
@@ -587,11 +593,28 @@ impl GuiAnalysis {
         });
     }
 
+    fn specify_leaflet_membrane_normal(&mut self, ui: &mut Ui, label: &str) {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Membrane normal used for the leaflet classification.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
+
+            let mut raw_normal = Axis::Z;
+
+            ui.radio_value(&mut raw_normal, Axis::X, "x");
+            ui.radio_value(&mut raw_normal, Axis::Y, "y");
+            ui.radio_value(&mut raw_normal, Axis::Z, "z");
+        });
+    }
+
     fn specify_leaflet_classification(&mut self, ui: &mut Ui) {
         let text = if self.check_leaflets_sanity() {
-            RichText::new("Leaflet assignment options")
+            RichText::new("Leaflet assignment").font(egui::FontId::monospace(12.0))
         } else {
-            RichText::new("Leaflet assignment options")
+            RichText::new("Leaflet assignment")
+                .font(egui::FontId::monospace(12.0))
                 .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100))
         };
 
@@ -637,35 +660,36 @@ impl GuiAnalysis {
                     Self::specify_string(
                         &mut self.leaflet_classification_params.global_params.membrane,
                         ui,
-                        "Membrane:    ",
+                        "Membrane:        ",
                         "Selection of all lipid atoms forming the membrane.",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.global_params.heads,
                         ui,
-                        "Lipid heads: ",
+                        "Lipid heads:     ",
                         "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
                     Self::specify_frequency(
                         &mut self.leaflet_classification_params.frequency,
                         ui,
-                        "Frequency:   ",
+                        "Frequency:       ",
                     );
+                    self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
                 }
                 LeafletClassification::Local => {
                     Self::specify_string(
                         &mut self.leaflet_classification_params.local_params.membrane,
                         ui,
-                        "Membrane:    ",
+                        "Membrane:        ",
                         "Selection of all lipid atoms forming the membrane.",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.local_params.heads,
                         ui,
-                        "Lipid heads: ",
+                        "Lipid heads:     ",
                         "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
@@ -673,7 +697,7 @@ impl GuiAnalysis {
                     ui.horizontal(|ui| {
                         let label = ui
                             .label(
-                                RichText::new("Radius:      ").font(egui::FontId::monospace(12.0)),
+                                RichText::new("Radius:          ").font(egui::FontId::monospace(12.0)),
                             )
                             .on_hover_ui(|ui| {
                                 ui.label("Radius of the cylinder [nm] for the calculation of local membrane center.");
@@ -693,21 +717,23 @@ impl GuiAnalysis {
                     Self::specify_frequency(
                         &mut self.leaflet_classification_params.frequency,
                         ui,
-                        "Frequency:   ",
+                        "Frequency:       ",
                     );
+
+                    self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
                 }
                 LeafletClassification::Individual => {
                     Self::specify_string(
                         &mut self.leaflet_classification_params.individual_params.heads,
                         ui,
-                        "Lipid heads:   ",
+                        "Lipid heads:     ",
                         "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                         true,
                     );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.individual_params.methyls,
                         ui,
-                        "Lipid methyls: ",
+                        "Lipid methyls:   ",
                         "Selection of lipid atoms representing ends of lipid tails.",
                         true,
                     );
@@ -715,8 +741,10 @@ impl GuiAnalysis {
                     Self::specify_frequency(
                         &mut self.leaflet_classification_params.frequency,
                         ui,
-                        "Frequency:     ",
+                        "Frequency:       ",
                     );
+
+                    self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
                 }
                 LeafletClassification::Clustering => {
                     Self::specify_string(
