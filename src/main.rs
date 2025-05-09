@@ -223,6 +223,64 @@ enum MembraneNormal {
     Dynamic,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum OrderMapDimension {
+    #[default]
+    Auto,
+    Manual,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum Plane {
+    Unknown,
+    #[default]
+    XY,
+    YZ,
+    XZ,
+}
+
+#[derive(Debug, Clone)]
+struct ManualDimensions {
+    start: f32,
+    end: f32,
+}
+
+impl Default for ManualDimensions {
+    fn default() -> Self {
+        Self {
+            start: 0.0,
+            end: 10.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct OrderMapsParams {
+    calculate_maps: bool,
+    output_directory: String,
+    plane: Option<Plane>,
+    bin_size: [f32; 2],
+    dimensions: [OrderMapDimension; 2],
+    x_manual: ManualDimensions,
+    y_manual: ManualDimensions,
+    min_samples: usize,
+}
+
+impl Default for OrderMapsParams {
+    fn default() -> Self {
+        Self {
+            calculate_maps: false,
+            output_directory: String::new(),
+            plane: None,
+            bin_size: [0.1, 0.1],
+            dimensions: [OrderMapDimension::default(), OrderMapDimension::default()],
+            x_manual: ManualDimensions::default(),
+            y_manual: ManualDimensions::default(),
+            min_samples: 1,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct GuiAnalysis {
     structure: String,
@@ -236,19 +294,7 @@ struct GuiAnalysis {
     leaflet_classification_params: LeafletClassificationParams,
     membrane_normal: MembraneNormal,
     dynamic_normal_params: DynamicNormalParams,
-}
-
-#[derive(Default)]
-struct DragState {
-    source_index: Option<usize>,
-    hover_index: Option<usize>,
-}
-
-impl DragState {
-    fn reset(&mut self) {
-        self.source_index = None;
-        self.hover_index = None;
-    }
+    ordermaps_params: OrderMapsParams,
 }
 
 impl eframe::App for GuiAnalysis {
@@ -321,6 +367,7 @@ impl eframe::App for GuiAnalysis {
                     self.specify_advanced_output(ui);
                     self.specify_membrane_normal(ui);
                     self.specify_leaflet_classification(ui);
+                    self.specify_ordermaps(ui);
 
                     ui.separator();
                     ui.horizontal(|ui| {
@@ -1129,6 +1176,204 @@ impl GuiAnalysis {
         });
     }
 
+    fn specify_ordermaps(&mut self, ui: &mut Ui) {
+        let text = if self.check_ordermaps_sanity() {
+            RichText::new("Order parameter maps").font(egui::FontId::monospace(12.0))
+        } else {
+            RichText::new("Order parameter maps")
+                .font(egui::FontId::monospace(12.0))
+                .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100))
+        };
+
+        ui.collapsing(text, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Construct ordermaps: ").font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {
+                        ui.label("Should the ordermaps be constructed?");
+                    })
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                ui.checkbox(&mut self.ordermaps_params.calculate_maps, "");
+            });
+
+            if !self.ordermaps_params.calculate_maps {
+                return;
+            }
+
+            Self::specify_string(
+                &mut self.ordermaps_params.output_directory, 
+                ui, 
+                "Directory:  ", 
+                "Name of a directory for saving ordermaps. Directory does not have to already exist.", 
+                true
+            );
+
+            let raw_plane = if let Some(plane) = self.ordermaps_params.plane {
+                plane
+            } else {
+                match self.membrane_normal {
+                    MembraneNormal::X => Plane::YZ,
+                    MembraneNormal::Y => Plane::XZ,
+                    MembraneNormal::Z => Plane::XY,
+                    MembraneNormal::Dynamic => Plane::Unknown,
+                }
+            };
+
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Plane:      ").font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {
+                        ui.label("Plane in which the ordermaps will be constructed.");
+                    })
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                if ui.add(egui::RadioButton::new(raw_plane == Plane::XY, "xy")).clicked() {
+                    self.ordermaps_params.plane = Some(Plane::XY);
+                }
+    
+                if ui.add(egui::RadioButton::new(raw_plane == Plane::XZ, "xz")).clicked() {
+                    self.ordermaps_params.plane = Some(Plane::XZ);
+                }
+
+                if ui.add(egui::RadioButton::new(raw_plane == Plane::YZ, "yz")).clicked() {
+                    self.ordermaps_params.plane = Some(Plane::YZ);
+                }
+
+                if raw_plane == Plane::Unknown {
+                    ui.label(RichText::new("❗").color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)));
+                }
+            });
+
+            let (dim_1, dim_2) = match raw_plane {
+                Plane::XY => ("X-dimension", "Y-dimension"),
+                Plane::YZ => ("Z-dimension", "Y-dimension"),
+                Plane::XZ => ("X-dimension", "Z-dimension"),
+                Plane::Unknown => ("Unknown dimension", "Unknown dimension"),
+            };
+
+            ui.vertical(|ui| {
+                ui.label(RichText::new("Maps size:  ").font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Size of the ordermaps.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
+
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(format!(" {dim_1}: ")).font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {ui.label(format!("Size of the ordermaps along the {}.", dim_1.to_lowercase()));})
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                    ui.radio_value(&mut self.ordermaps_params.dimensions[0], OrderMapDimension::Auto, "automatic");
+                    ui.radio_value(&mut self.ordermaps_params.dimensions[0], OrderMapDimension::Manual, "manual");
+
+                    if self.ordermaps_params.dimensions[0] == OrderMapDimension::Manual {
+                        ui.add(
+                            egui::DragValue::new(
+                                &mut self.ordermaps_params.x_manual.start,
+                            )
+                            .speed(0.1)
+                            .range(-f32::MAX..=self.ordermaps_params.x_manual.end)
+                            .suffix(" nm"),
+                        ).on_hover_ui(|ui| {
+                            ui.label("start");
+                        });
+
+                        ui.add(
+                            egui::DragValue::new(
+                                &mut self.ordermaps_params.x_manual.end,
+                            )
+                            .speed(0.1)
+                            .range(self.ordermaps_params.x_manual.start..=f32::MAX)
+                            .suffix(" nm"),
+                        ).on_hover_ui(|ui| {
+                            ui.label("end");
+                        });
+                    }
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(format!(" {dim_2}: ")).font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {ui.label(format!("Size of the ordermaps along the {}.", dim_2.to_lowercase()));})
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                    ui.radio_value(&mut self.ordermaps_params.dimensions[1], OrderMapDimension::Auto, "automatic");
+                    ui.radio_value(&mut self.ordermaps_params.dimensions[1], OrderMapDimension::Manual, "manual");
+
+                    if self.ordermaps_params.dimensions[1] == OrderMapDimension::Manual {
+                        ui.add(
+                            egui::DragValue::new(
+                                &mut self.ordermaps_params.y_manual.start,
+                            )
+                            .speed(0.1)
+                            .range(-f32::MAX..=self.ordermaps_params.y_manual.end)
+                            .suffix(" nm"),
+                        ).on_hover_ui(|ui| {
+                            ui.label("start");
+                        });
+
+                        ui.add(
+                            egui::DragValue::new(
+                                &mut self.ordermaps_params.y_manual.end,
+                            )
+                            .speed(0.1)
+                            .range(self.ordermaps_params.y_manual.start..=f32::MAX)
+                            .suffix(" nm"),
+                        ).on_hover_ui(|ui| {
+                            ui.label("end");
+                        });
+                    }
+                });
+            });
+
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Bin size:   ").font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Size of the bins of the ordermap.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
+
+                ui.add(
+                    egui::DragValue::new(
+                        &mut self.ordermaps_params.bin_size[0],
+                    )
+                    .speed(0.01)
+                    .range(0.0..=f32::MAX)
+                    .suffix(" nm"),
+                ).on_hover_ui(|ui| {
+                    ui.label(dim_1.to_lowercase());
+                });
+
+                ui.add(
+                    egui::DragValue::new(
+                        &mut self.ordermaps_params.bin_size[1],
+                    )
+                    .speed(0.01)
+                    .range(0.0..=f32::MAX)
+                    .suffix(" nm"),
+                ).on_hover_ui(|ui| {
+                    ui.label(dim_2.to_lowercase());
+                });
+            });
+
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Min samples:").font(egui::FontId::monospace(12.0)))
+                .on_hover_ui(|ui| {
+                    ui.label("Minimum number of samples required in a bin to calculate the order parameter.");
+                })
+                .on_hover_cursor(egui::CursorIcon::Help);
+
+                ui.add(
+                    egui::DragValue::new(
+                        &mut self.ordermaps_params.min_samples,
+                    )
+                    .speed(2.5)
+                    .range(1..=usize::MAX),
+                );
+            });
+
+            
+        });
+    }
+
     /// Check that all options required for the analysis have been provided.
     fn check_sanity(&self) -> bool {
         self.check_leaflets_sanity()
@@ -1137,6 +1382,7 @@ impl GuiAnalysis {
             && !self.trajectory.iter().any(|file| file.is_empty())
             && !self.output.output_yaml.is_empty()
             && self.check_membrane_normal_sanity()
+            && self.check_ordermaps_sanity()
     }
 
     /// Check that all required options for leaflet assignment have been provided.
@@ -1200,5 +1446,10 @@ impl GuiAnalysis {
                     && !self.analysis_type_params.ua_params.unsaturated.is_empty()
             }
         }
+    }
+
+    fn check_ordermaps_sanity(&self) -> bool {
+        !self.ordermaps_params.calculate_maps || (
+            !self.ordermaps_params.output_directory.is_empty() && (self.ordermaps_params.plane.is_some() || self.membrane_normal != MembraneNormal::Dynamic))
     }
 }
