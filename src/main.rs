@@ -1203,7 +1203,7 @@ impl GuiAnalysis {
             Self::specify_string(
                 &mut self.ordermaps_params.output_directory, 
                 ui, 
-                "Directory:  ", 
+                "Directory:    ", 
                 "Name of a directory for saving ordermaps. Directory does not have to already exist.", 
                 true
             );
@@ -1220,7 +1220,7 @@ impl GuiAnalysis {
             };
 
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Plane:      ").font(egui::FontId::monospace(12.0)))
+                ui.label(RichText::new("Plane:        ").font(egui::FontId::monospace(12.0)))
                     .on_hover_ui(|ui| {
                         ui.label("Plane in which the ordermaps will be constructed.");
                     })
@@ -1251,7 +1251,7 @@ impl GuiAnalysis {
             };
 
             ui.vertical(|ui| {
-                ui.label(RichText::new("Maps size:  ").font(egui::FontId::monospace(12.0)))
+                ui.label(RichText::new("Maps size: ").font(egui::FontId::monospace(12.0)))
                 .on_hover_ui(|ui| {
                     ui.label("Size of the ordermaps.");
                 })
@@ -1325,7 +1325,7 @@ impl GuiAnalysis {
             });
 
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Bin size:   ").font(egui::FontId::monospace(12.0)))
+                ui.label(RichText::new("Bin size:     ").font(egui::FontId::monospace(12.0)))
                 .on_hover_ui(|ui| {
                     ui.label("Size of the bins of the ordermap.");
                 })
@@ -1355,7 +1355,7 @@ impl GuiAnalysis {
             });
 
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Min samples:").font(egui::FontId::monospace(12.0)))
+                ui.label(RichText::new("Min samples:  ").font(egui::FontId::monospace(12.0)))
                 .on_hover_ui(|ui| {
                     ui.label("Minimum number of samples required in a bin to calculate the order parameter.");
                 })
