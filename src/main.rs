@@ -1,6 +1,6 @@
 use std::{fmt::Display, num::NonZeroUsize};
 
-use eframe::egui::{self, RichText, Separator, Ui};
+use eframe::egui::{self, Color32, CursorIcon, Response, RichText, Sense, Separator, Ui};
 use gorder::{
     input::{Analysis, Axis, Frequency},
     prelude::AnalysisBuilder,
@@ -25,7 +25,7 @@ fn main() -> eframe::Result {
     )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum AnalysisType {
     #[default]
     AAOrder,
@@ -33,7 +33,7 @@ enum AnalysisType {
     CGOrder,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum LeafletClassification {
     #[default]
     None,
@@ -165,7 +165,7 @@ impl LeafletFromFileParams {
 #[derive(Debug, Clone, Default)]
 struct LeafletFromNdxParams {
     heads: String,
-    ndx: String,
+    ndx: Vec<String>,
     upper_leaflet: String,
     lower_leaflet: String,
 }
@@ -173,7 +173,7 @@ struct LeafletFromNdxParams {
 impl LeafletFromNdxParams {
     fn sanity_check(&self) -> bool {
         !self.heads.is_empty()
-            && !self.ndx.is_empty()
+            && !self.ndx.iter().any(|file| file.is_empty())
             && !self.upper_leaflet.is_empty()
             && !self.lower_leaflet.is_empty()
     }
@@ -188,10 +188,25 @@ struct LeafletClassificationParams {
     from_file_params: LeafletFromFileParams,
     from_ndx_params: LeafletFromNdxParams,
     frequency: Frequency,
-    membrane_normal: Option<Axis>,
+    membrane_normal: Option<MembraneNormal>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone)]
+struct DynamicNormalParams {
+    heads: String,
+    radius: f32,
+}
+
+impl Default for DynamicNormalParams {
+    fn default() -> Self {
+        DynamicNormalParams {
+            heads: String::new(),
+            radius: 2.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum RawFrequency {
     Once,
     #[default]
@@ -199,10 +214,19 @@ enum RawFrequency {
     EveryN,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum MembraneNormal {
+    X,
+    Y,
+    #[default]
+    Z,
+    Dynamic,
+}
+
 #[derive(Debug, Clone, Default)]
 struct GuiAnalysis {
     structure: String,
-    trajectory: String,
+    trajectory: Vec<String>,
     ndx: String,
     bonds: String,
     analysis_type: AnalysisType,
@@ -210,6 +234,21 @@ struct GuiAnalysis {
     output: OutputFiles,
     leaflet_classification_method: LeafletClassification,
     leaflet_classification_params: LeafletClassificationParams,
+    membrane_normal: MembraneNormal,
+    dynamic_normal_params: DynamicNormalParams,
+}
+
+#[derive(Default)]
+struct DragState {
+    source_index: Option<usize>,
+    hover_index: Option<usize>,
+}
+
+impl DragState {
+    fn reset(&mut self) {
+        self.source_index = None;
+        self.hover_index = None;
+    }
 }
 
 impl eframe::App for GuiAnalysis {
@@ -259,11 +298,11 @@ impl eframe::App for GuiAnalysis {
                         "Path to a file containing the structure of the system.",
                         true,
                     );
-                    GuiAnalysis::specify_input_file(
+                    GuiAnalysis::specify_multiple_input_files(
                         &mut self.trajectory,
                         ui,
                         "Trajectory:  ",
-                        "Path to a file containing the trajectory to analyze.",
+                        "Path to a file containing the trajectory to analyze. Provide multiple files by clicking the '+' button or by selecting them interactively.",
                         true,
                     );
                     GuiAnalysis::specify_output_file(
@@ -280,6 +319,7 @@ impl eframe::App for GuiAnalysis {
 
                     self.specify_advanced_input(ui);
                     self.specify_advanced_output(ui);
+                    self.specify_membrane_normal(ui);
                     self.specify_leaflet_classification(ui);
 
                     ui.separator();
@@ -335,12 +375,194 @@ impl GuiAnalysis {
             }
 
             //ui.text_edit_singleline(target).labelled_by(label.id);
-            if ui.button("📁").clicked() {
+            if ui
+                .button("📁")
+                .on_hover_ui(|ui| {
+                    ui.label("Select the file interactively.");
+                })
+                .clicked()
+            {
                 if let Some(path) = rfd::FileDialog::new().pick_file() {
                     *target = path.display().to_string();
                 }
             }
         });
+    }
+
+    fn specify_multiple_input_files(
+        target: &mut Vec<String>,
+        ui: &mut Ui,
+        label: &str,
+        hint: &str,
+        required: bool,
+    ) {
+        if target.is_empty() {
+            target.push(String::new());
+        }
+
+        if target.len() == 1 {
+            ui.horizontal(|ui| {
+                let label = ui
+                    .label(RichText::new(label).font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {
+                        ui.label(hint);
+                    })
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                if target.is_empty() {
+                    target.push(String::new());
+                }
+
+                if required && target[0].is_empty() {
+                    ui.add(
+                        egui::TextEdit::singleline(&mut target[0])
+                            .background_color(egui::Color32::from_rgba_premultiplied(50, 0, 0, 50)),
+                    )
+                    .labelled_by(label.id);
+                } else {
+                    ui.add(egui::TextEdit::singleline(&mut target[0]))
+                        .labelled_by(label.id);
+                }
+
+                if ui
+                    .add_enabled(
+                        !target.iter().any(|x| x.is_empty()),
+                        egui::Button::new("➕"),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label("Select another file.");
+                    })
+                    .on_disabled_hover_ui(|ui| {
+                        ui.label(
+                            "Cannot select another file because a previous filename is missing.",
+                        );
+                    })
+                    .clicked()
+                {
+                    target.push(String::new());
+                }
+
+                if ui
+                    .button("📁")
+                    .on_hover_ui(|ui| {
+                        ui.label("Select the file(s) interactively.");
+                    })
+                    .clicked()
+                {
+                    if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                        target.clear();
+                        for file in paths {
+                            target.push(file.display().to_string())
+                        }
+                    }
+                }
+            });
+        } else {
+            let text = if !target.iter().any(|file| file.is_empty()) {
+                RichText::new(label).font(egui::FontId::monospace(12.0))
+            } else {
+                RichText::new(label)
+                    .font(egui::FontId::monospace(12.0))
+                    .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100))
+            };
+
+            ui.horizontal(|ui| {
+                egui::CollapsingHeader::new(text)
+                .default_open(true)
+                .show(ui, |ui| {
+                    let mut index_to_remove = None;
+                    let mut move_up = None;
+                    let mut move_down = None;
+                    let last_index = target.len() - 1;
+                    let no_empty = !target.iter().any(|x| x.is_empty());
+                    for (i, item) in target.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            if required && item.is_empty() {
+                                ui.add(
+                                    egui::TextEdit::singleline(item)
+                                        .background_color(egui::Color32::from_rgba_premultiplied(50, 0, 0, 50)),
+                                );
+                            } else {
+                                ui.add(egui::TextEdit::singleline(item));
+                            }
+                            
+                            if ui.add_enabled(i != 0, egui::Button::new("🔼"))
+                                .on_hover_ui(|ui| {ui.label("Move up in the list.");})
+                                .on_disabled_hover_ui(|ui| {ui.label("Cannot move further up.");})
+                                .clicked() 
+                            {
+                                move_up = Some(i);
+                            }
+
+                            if ui.add_enabled(i != last_index, egui::Button::new("🔽"))
+                                .on_hover_ui(|ui| {ui.label("Move down in the list.");})
+                                .on_disabled_hover_ui(|ui| {ui.label("Cannot move further down.");})
+                                .clicked() 
+                            {
+                                move_down = Some(i);
+                            }
+                            
+                            if ui
+                                .button("➖")
+                                .on_hover_ui(|ui| {
+                                    ui.label("Unselect this file.");
+                                })
+                                .clicked()
+                            {
+                                index_to_remove = Some(i);
+                            }
+                        });
+                    }
+
+                    if let Some(i) = index_to_remove {
+                        target.remove(i);
+                    }
+
+                    if let Some(i) = move_up {
+                        target.swap(i, i - 1);
+                    }
+
+                    if let Some(i) = move_down {
+                        target.swap(i, i + 1);
+                    }
+
+
+                    ui.horizontal(|ui| {
+                        ui.add_space(140.0);
+                        if ui
+                        .add_enabled(no_empty, egui::Button::new("➕"))
+                        .on_hover_ui(|ui| {
+                            ui.label("Select another file.");
+                        })
+                        .on_disabled_hover_ui(|ui| {
+                            ui.label(
+                "Cannot select another file because a previous filename is missing.",
+                        );
+                        })
+                        .clicked()
+                    {
+                        target.push(String::new());
+                    }
+                    });
+                    
+                });
+
+                if ui
+                    .button("📁")
+                    .on_hover_ui(|ui| {
+                        ui.label("Select the files interactively. This will replace all already selected files!");
+                    })
+                    .clicked()
+                {
+                    if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                        target.clear();
+                        for file in paths {
+                            target.push(file.display().to_string())
+                        }
+                    }
+                }
+            });
+        }
     }
 
     fn specify_output_file(
@@ -368,7 +590,13 @@ impl GuiAnalysis {
                     .labelled_by(label.id);
             }
 
-            if ui.button("📁").clicked() {
+            if ui
+                .button("📁")
+                .on_hover_ui(|ui| {
+                    ui.label("Specify the file interactively.");
+                })
+                .clicked()
+            {
                 if let Some(path) = rfd::FileDialog::new().save_file() {
                     *target = path.display().to_string();
                 }
@@ -401,7 +629,7 @@ impl GuiAnalysis {
         ui.horizontal(|ui| {
             ui.label(RichText::new("Analysis type: ").font(egui::FontId::monospace(12.0)))
                 .on_hover_ui(|ui| {
-                    ui.label("Type of analysis to be performed.");
+                    ui.label("Type of order parameters to calculate.");
                 })
                 .on_hover_cursor(egui::CursorIcon::Help);
             ui.radio_value(&mut self.analysis_type, AnalysisType::AAOrder, "atomistic");
@@ -594,18 +822,34 @@ impl GuiAnalysis {
     }
 
     fn specify_leaflet_membrane_normal(&mut self, ui: &mut Ui, label: &str) {
+        let raw_normal = if let Some(x) = self.leaflet_classification_params.membrane_normal {
+            x
+        } else {
+            self.membrane_normal
+        };
+
         ui.horizontal(|ui| {
             ui.label(RichText::new(label).font(egui::FontId::monospace(12.0)))
                 .on_hover_ui(|ui| {
-                    ui.label("Membrane normal used for the leaflet classification.");
+                    ui.label("Membrane normal used for the leaflet classification. Can be decoupled from the global membrane normal.");
                 })
                 .on_hover_cursor(egui::CursorIcon::Help);
 
-            let mut raw_normal = Axis::Z;
+            if ui.add(egui::RadioButton::new(raw_normal == MembraneNormal::X, "x")).clicked() {
+                self.leaflet_classification_params.membrane_normal = Some(MembraneNormal::X);
+            }
 
-            ui.radio_value(&mut raw_normal, Axis::X, "x");
-            ui.radio_value(&mut raw_normal, Axis::Y, "y");
-            ui.radio_value(&mut raw_normal, Axis::Z, "z");
+            if ui.add(egui::RadioButton::new(raw_normal == MembraneNormal::Y, "y")).clicked() {
+                self.leaflet_classification_params.membrane_normal = Some(MembraneNormal::Y);
+            }
+
+            if ui.add(egui::RadioButton::new(raw_normal == MembraneNormal::Z, "z")).clicked() {
+                self.leaflet_classification_params.membrane_normal = Some(MembraneNormal::Z);
+            }
+
+            if raw_normal == MembraneNormal::Dynamic {
+                ui.label(RichText::new("❗").color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)));
+            }
         });
     }
 
@@ -700,7 +944,7 @@ impl GuiAnalysis {
                                 RichText::new("Radius:          ").font(egui::FontId::monospace(12.0)),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label("Radius of the cylinder [nm] for the calculation of local membrane center.");
+                                ui.label("Radius of the cylinder for the calculation of local membrane center.");
                             })
                             .on_hover_cursor(egui::CursorIcon::Help);
 
@@ -709,7 +953,8 @@ impl GuiAnalysis {
                                 &mut self.leaflet_classification_params.local_params.radius,
                             )
                             .speed(0.1)
-                            .range(0.0..=f32::MAX),
+                            .range(0.0..=f32::MAX)
+                            .suffix(" nm"),
                         )
                         .labelled_by(label.id);
                     });
@@ -777,18 +1022,18 @@ impl GuiAnalysis {
                     );
                 }
                 LeafletClassification::FromNdx => {
+                    Self::specify_multiple_input_files(
+                        &mut self.leaflet_classification_params.from_ndx_params.ndx,
+                        ui,
+                        "NDX files: ",
+                        "Path to NDX files specifying the leaflets.",
+                        true,
+                    );
                     Self::specify_string(
                         &mut self.leaflet_classification_params.from_ndx_params.heads,
                         ui,
                         "Lipid heads:   ",
                         "Selection of lipid atoms representing lipid heads. One atom per molecule!",
-                        true,
-                    );
-                    Self::specify_input_file(
-                        &mut self.leaflet_classification_params.from_ndx_params.ndx,
-                        ui,
-                        "NDX file:      ",
-                        "Path to an NDX file specifying the leaflets.",
                         true,
                     );
                     Self::specify_string(
@@ -822,18 +1067,81 @@ impl GuiAnalysis {
         });
     }
 
+    fn specify_membrane_normal(&mut self, ui: &mut Ui) {
+        let text = if self.check_membrane_normal_sanity() {
+            RichText::new("Membrane normal").font(egui::FontId::monospace(12.0))
+        } else {
+            RichText::new("Membrane normal")
+                .font(egui::FontId::monospace(12.0))
+                .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100))
+        };
+
+        ui.collapsing(text, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Membrane normal: ").font(egui::FontId::monospace(12.0)))
+                    .on_hover_ui(|ui| {
+                        ui.label("Direction of the membrane normal.");
+                    })
+                    .on_hover_cursor(egui::CursorIcon::Help);
+
+                ui.radio_value(&mut self.membrane_normal, MembraneNormal::X, "x");
+                ui.radio_value(&mut self.membrane_normal, MembraneNormal::Y, "y");
+                ui.radio_value(&mut self.membrane_normal, MembraneNormal::Z, "z");
+                ui.radio_value(
+                    &mut self.membrane_normal,
+                    MembraneNormal::Dynamic,
+                    "dynamic",
+                );
+            });
+
+            if self.membrane_normal == MembraneNormal::Dynamic {
+                ui.vertical(|ui| {
+                    Self::specify_string(
+                        &mut self.dynamic_normal_params.heads,
+                        ui,
+                        "Lipid heads: ",
+                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+                        true,
+                    );
+
+                    ui.horizontal(|ui| {
+                        let label = ui
+                            .label(
+                                RichText::new("Radius:      ").font(egui::FontId::monospace(12.0)),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label("Radius of the scanning sphere for identification of nearby lipid heads.");
+                            })
+                            .on_hover_cursor(egui::CursorIcon::Help);
+
+                        ui.add(
+                            egui::DragValue::new(
+                                &mut self.dynamic_normal_params.radius,
+                            )
+                            .speed(0.1)
+                            .range(0.0..=f32::MAX)
+                            .suffix(" nm"),
+                        )
+                        .labelled_by(label.id);
+                    })
+                });
+            }
+        });
+    }
+
     /// Check that all options required for the analysis have been provided.
     fn check_sanity(&self) -> bool {
         self.check_leaflets_sanity()
             && self.check_analysis_params_sanity()
             && !self.structure.is_empty()
-            && !self.trajectory.is_empty()
+            && !self.trajectory.iter().any(|file| file.is_empty())
             && !self.output.output_yaml.is_empty()
+            && self.check_membrane_normal_sanity()
     }
 
     /// Check that all required options for leaflet assignment have been provided.
     fn check_leaflets_sanity(&self) -> bool {
-        match self.leaflet_classification_method {
+        (match self.leaflet_classification_method {
             LeafletClassification::None => true,
             LeafletClassification::Global => self
                 .leaflet_classification_params
@@ -860,6 +1168,22 @@ impl GuiAnalysis {
                 .leaflet_classification_params
                 .from_ndx_params
                 .sanity_check(),
+        }) && (match self.leaflet_classification_method {
+            LeafletClassification::Global
+            | LeafletClassification::Local
+            | LeafletClassification::Individual => {
+                self.membrane_normal != MembraneNormal::Dynamic
+                    || self.leaflet_classification_params.membrane_normal.is_some()
+            }
+            _ => true,
+        })
+    }
+
+    /// Check that all required options for membrane normal specification have been provided.
+    fn check_membrane_normal_sanity(&self) -> bool {
+        match self.membrane_normal {
+            MembraneNormal::Dynamic => !self.dynamic_normal_params.heads.is_empty(),
+            _ => true,
         }
     }
 
