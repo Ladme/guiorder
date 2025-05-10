@@ -12,6 +12,7 @@ mod frame_selection;
 mod leaflets;
 mod membrane_normal;
 mod ordermaps;
+mod other_options;
 
 pub const GUIORDER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -105,6 +106,7 @@ impl eframe::App for GuiAnalysis {
                     self.specify_leaflet_classification(ui);
                     self.specify_ordermaps(ui);
                     self.specify_estimate_error(ui);
+                    self.specify_other_options(ui);
 
                     ui.separator();
                     ui.horizontal(|ui| {
@@ -121,7 +123,19 @@ impl eframe::App for GuiAnalysis {
                         ui.separator();
                         ui.add_space(46.0);
 
-                        if Self::smart_button(ui, self.check_sanity(), "🔥 Run the analysis", "Perform the analysis using the specified options.", "Cannot run the analysis because some options are missing.").clicked() {
+                        let hint = if self.n_threads >= 2 {
+                            format!("Perform the analysis using {} threads.", self.n_threads)
+                        } else {
+                            format!("Perform the analysis using 1 thread.")
+                        };
+
+                        if Self::smart_button(
+                            ui,
+                            self.check_sanity(),
+                            "🔥 Run the analysis",
+                            &hint,
+                            "Cannot run the analysis because some options are missing."
+                        ).clicked() {
                             // todo; convert and run
                         };
                     });
