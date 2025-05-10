@@ -105,7 +105,7 @@ impl LeafletLocalParams {
         GuiAnalysis::specify_string(
             &mut self.membrane,
             ui,
-            "Membrane:        ",
+            "Membrane:       ",
             "Selection of all lipid atoms forming the membrane.",
             true,
         );
@@ -113,7 +113,7 @@ impl LeafletLocalParams {
         GuiAnalysis::specify_string(
             &mut self.heads,
             ui,
-            "Lipid heads:     ",
+            "Lipid heads:    ",
             "Selection of lipid atoms representing lipid heads. One atom per molecule!",
             true,
         );
@@ -121,7 +121,7 @@ impl LeafletLocalParams {
         ui.horizontal(|ui| {
             let label = GuiAnalysis::label_with_hint(
                 ui,
-                "Radius:          ",
+                "Radius:         ",
                 "Radius of the cylinder for the calculation of local membrane center.",
             );
 
@@ -353,10 +353,10 @@ impl GuiAnalysis {
                         Self::specify_frequency(
                             &mut self.leaflet_classification_params.frequency,
                             ui,
-                            "Frequency:       ",
+                            "Frequency:      ",
                         );
 
-                        self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
+                        self.specify_leaflet_membrane_normal(ui, "Membrane normal:");
                     }
                     LeafletClassification::Individual => {
                         self.leaflet_classification_params

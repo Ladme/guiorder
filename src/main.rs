@@ -9,12 +9,14 @@ mod analysis_types;
 mod common;
 mod estimate_error;
 mod frame_selection;
+mod geometry;
 mod leaflets;
 mod membrane_normal;
 mod ordermaps;
 mod other_options;
 
 pub const GUIORDER_VERSION: &str = env!("CARGO_PKG_VERSION");
+const LINE_SPACING: f32 = 10.0;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
@@ -99,14 +101,25 @@ impl eframe::App for GuiAnalysis {
                     self.specify_analysis_type(ui);
                     ui.separator();
 
+                    ui.add_space(LINE_SPACING);
                     self.specify_advanced_input(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_advanced_output(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_frame_selection(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_membrane_normal(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_leaflet_classification(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_ordermaps(ui);
+                    ui.add_space(LINE_SPACING);
+                    self.specify_geometry(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_estimate_error(ui);
+                    ui.add_space(LINE_SPACING);
                     self.specify_other_options(ui);
+                    ui.add_space(LINE_SPACING);
 
                     ui.separator();
                     ui.horizontal(|ui| {
@@ -218,5 +231,6 @@ impl GuiAnalysis {
             && !self.output.output_yaml.is_empty()
             && self.check_membrane_normal_sanity()
             && self.check_ordermaps_sanity()
+            && self.check_geometry_sanity()
     }
 }

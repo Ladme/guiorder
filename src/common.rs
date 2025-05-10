@@ -9,6 +9,7 @@ use crate::{
     analysis_types::{AnalysisType, AnalysisTypeParams},
     estimate_error::EstimateErrorParams,
     frame_selection::FrameSelectionParams,
+    geometry::{GeomSelection, GeomSelectionParams},
     membrane_normal::DynamicNormalParams,
     ordermaps::OrderMapsParams,
     other_options::OtherParams,
@@ -33,6 +34,8 @@ pub(crate) struct GuiAnalysis {
     pub estimate_error_params: EstimateErrorParams,
     pub frame_selection_params: FrameSelectionParams,
     pub other_params: OtherParams,
+    pub geom_selection: GeomSelection,
+    pub geom_selection_params: GeomSelectionParams,
 }
 
 /// Direction of the membrane nornal.
