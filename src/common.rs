@@ -11,6 +11,7 @@ use crate::{
     frame_selection::FrameSelectionParams,
     membrane_normal::DynamicNormalParams,
     ordermaps::OrderMapsParams,
+    other_options::OtherParams,
     LeafletClassification, LeafletClassificationParams, OutputFiles,
 };
 
@@ -31,10 +32,7 @@ pub(crate) struct GuiAnalysis {
     pub ordermaps_params: OrderMapsParams,
     pub estimate_error_params: EstimateErrorParams,
     pub frame_selection_params: FrameSelectionParams,
-    pub min_samples: usize,
-    pub n_threads: usize,
-    pub overwrite: bool,
-    pub silent: bool,
+    pub other_params: OtherParams,
 }
 
 /// Direction of the membrane nornal.

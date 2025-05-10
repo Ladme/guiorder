@@ -123,8 +123,8 @@ impl eframe::App for GuiAnalysis {
                         ui.separator();
                         ui.add_space(46.0);
 
-                        let hint = if self.n_threads >= 2 {
-                            format!("Perform the analysis using {} threads.", self.n_threads)
+                        let hint = if self.other_params.n_threads >= 2 {
+                            format!("Perform the analysis using {} threads.", self.other_params.n_threads)
                         } else {
                             format!("Perform the analysis using 1 thread.")
                         };
