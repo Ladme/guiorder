@@ -260,6 +260,14 @@ impl GuiAnalysis {
         .on_hover_ui(|ui| {
             ui.label(dim_label.to_lowercase());
         });
+
+        if *bin_size == 0.0 {
+            ui.label(
+                RichText::new("❗").color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)),
+            );
+        } else {
+            ui.add_space(21.0);
+        }
     }
 
     /// Check that all parameters for the construction of ordermaps have been provided.
@@ -267,6 +275,8 @@ impl GuiAnalysis {
         !self.ordermaps_params.calculate_maps
             || (!self.ordermaps_params.output_directory.is_empty()
                 && (self.ordermaps_params.plane.is_some()
-                    || self.membrane_normal != MembraneNormal::Dynamic))
+                    || self.membrane_normal != MembraneNormal::Dynamic)
+                && self.ordermaps_params.bin_size[0] > 0.0
+                && self.ordermaps_params.bin_size[1] > 0.0)
     }
 }

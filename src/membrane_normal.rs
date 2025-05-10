@@ -70,12 +70,19 @@ impl GuiAnalysis {
                             egui::DragValue::new(
                                 &mut self.dynamic_normal_params.radius,
                             )
-                            .speed(0.1)
+                            .speed(0.025)
                             .range(0.0..=f32::MAX)
                             .suffix(" nm"),
                         )
                         .labelled_by(label.id);
-                    })
+
+                        if self.dynamic_normal_params.radius == 0.0 {
+                            ui.label(
+                                RichText::new("❗")
+                                    .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)),
+                            );
+                        }
+                    });
                 });
                 }
             },
@@ -85,7 +92,10 @@ impl GuiAnalysis {
     /// Check that all required options for membrane normal specification have been provided.
     pub(super) fn check_membrane_normal_sanity(&self) -> bool {
         match self.membrane_normal {
-            MembraneNormal::Dynamic => !self.dynamic_normal_params.heads.is_empty(),
+            MembraneNormal::Dynamic => {
+                !self.dynamic_normal_params.heads.is_empty()
+                    && self.dynamic_normal_params.radius > 0.0
+            }
             _ => true,
         }
     }

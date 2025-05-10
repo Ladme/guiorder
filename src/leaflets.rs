@@ -127,17 +127,24 @@ impl LeafletLocalParams {
 
             ui.add(
                 egui::DragValue::new(&mut self.radius)
-                    .speed(0.1)
+                    .speed(0.025)
                     .range(0.0..=f32::MAX)
                     .suffix(" nm"),
             )
             .labelled_by(label.id);
+
+            if self.radius == 0.0 {
+                ui.label(
+                    RichText::new("❗")
+                        .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)),
+                );
+            }
         });
     }
 
     /// Check that all required parameters are provided.
     fn sanity_check(&self) -> bool {
-        !self.membrane.is_empty() && !self.heads.is_empty()
+        !self.membrane.is_empty() && !self.heads.is_empty() && self.radius > 0.0
     }
 }
 
