@@ -14,6 +14,8 @@ use crate::GuiAnalysis;
 pub(crate) struct Windows {
     windows: Vec<bool>,
     errors: Vec<Rc<dyn std::error::Error>>,
+    ids: Vec<Id>,
+    total_spawned: usize,
 }
 
 impl Windows {
@@ -28,7 +30,7 @@ impl Windows {
 
             // render windows
             egui::Window::new("Error!")
-                .id(Id::new(id))
+                .id(*self.ids.get(id).unwrap())
                 .open(open)
                 .collapsible(false)
                 .resizable(false)
@@ -54,6 +56,7 @@ impl Windows {
         for id in windows_to_close {
             self.windows.remove(id);
             self.errors.remove(id);
+            self.ids.remove(id);
         }
     }
 }
@@ -63,5 +66,7 @@ impl GuiAnalysis {
     pub(super) fn open_window(&mut self, error: Rc<dyn std::error::Error>) {
         self.windows.windows.push(true);
         self.windows.errors.push(error);
+        self.windows.ids.push(Id::new(self.windows.total_spawned));
+        self.windows.total_spawned += 1;
     }
 }
