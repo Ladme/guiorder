@@ -16,6 +16,16 @@ pub(crate) enum AnalysisType {
     CGOrder,
 }
 
+impl From<gorder::input::AnalysisType> for AnalysisType {
+    fn from(value: gorder::input::AnalysisType) -> Self {
+        match value {
+            gorder::input::AnalysisType::AAOrder { .. } => AnalysisType::AAOrder,
+            gorder::input::AnalysisType::CGOrder { .. } => AnalysisType::CGOrder,
+            gorder::input::AnalysisType::UAOrder { .. } => AnalysisType::UAOrder,
+        }
+    }
+}
+
 /// Parameters for calculating AA order.
 #[derive(Debug, Clone, Default)]
 struct AAParams {
@@ -43,6 +53,39 @@ pub(crate) struct AnalysisTypeParams {
     aa_params: AAParams,
     ua_params: UAParams,
     cg_params: CGParams,
+}
+
+impl From<gorder::input::AnalysisType> for AnalysisTypeParams {
+    fn from(value: gorder::input::AnalysisType) -> Self {
+        match value {
+            gorder::input::AnalysisType::AAOrder {
+                heavy_atoms,
+                hydrogens,
+            } => Self {
+                aa_params: AAParams {
+                    heavy_atoms,
+                    hydrogens,
+                },
+                ..Default::default()
+            },
+            gorder::input::AnalysisType::CGOrder { beads } => Self {
+                cg_params: CGParams { beads },
+                ..Default::default()
+            },
+            gorder::input::AnalysisType::UAOrder {
+                saturated,
+                unsaturated,
+                ignore,
+            } => Self {
+                ua_params: UAParams {
+                    saturated: saturated.unwrap_or(String::new()),
+                    unsaturated: unsaturated.unwrap_or(String::new()),
+                    ignore: ignore.unwrap_or(String::new()),
+                },
+                ..Default::default()
+            },
+        }
+    }
 }
 
 impl GuiAnalysis {

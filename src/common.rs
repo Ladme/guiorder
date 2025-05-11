@@ -4,15 +4,19 @@
 //! Common structures and methods.
 
 use eframe::egui::{self, CollapsingResponse, CursorIcon, Response, RichText, Ui};
+use gorder::input::Axis;
+use regex::Regex;
 
 use crate::{
     analysis_types::{AnalysisType, AnalysisTypeParams},
+    error::ConversionError,
     estimate_error::EstimateErrorParams,
     frame_selection::FrameSelectionParams,
     geometry::{GeomSelection, GeomSelectionParams},
     membrane_normal::DynamicNormalParams,
     ordermaps::OrderMapsParams,
     other_options::OtherParams,
+    window::Windows,
     LeafletClassification, LeafletClassificationParams, OutputFiles,
 };
 
@@ -30,12 +34,14 @@ pub(crate) struct GuiAnalysis {
     pub leaflet_classification_params: LeafletClassificationParams,
     pub membrane_normal: MembraneNormal,
     pub dynamic_normal_params: DynamicNormalParams,
+    pub from_file_normals: String,
     pub ordermaps_params: OrderMapsParams,
     pub estimate_error_params: EstimateErrorParams,
     pub frame_selection_params: FrameSelectionParams,
     pub other_params: OtherParams,
     pub geom_selection: GeomSelection,
     pub geom_selection_params: GeomSelectionParams,
+    pub windows: Windows,
 }
 
 /// Direction of the membrane nornal.
@@ -46,6 +52,29 @@ pub(crate) enum MembraneNormal {
     #[default]
     Z,
     Dynamic,
+    FromFile,
+}
+
+impl From<Axis> for MembraneNormal {
+    fn from(value: Axis) -> Self {
+        match value {
+            Axis::X => MembraneNormal::X,
+            Axis::Y => MembraneNormal::Y,
+            Axis::Z => MembraneNormal::Z,
+        }
+    }
+}
+
+impl TryFrom<gorder::input::MembraneNormal> for MembraneNormal {
+    type Error = ConversionError;
+    fn try_from(value: gorder::input::MembraneNormal) -> Result<Self, Self::Error> {
+        match value {
+            gorder::input::MembraneNormal::Static(axis) => Ok(axis.into()),
+            gorder::input::MembraneNormal::Dynamic(_) => Ok(Self::Dynamic),
+            gorder::input::MembraneNormal::FromFile(_) => Ok(Self::FromFile),
+            gorder::input::MembraneNormal::FromMap(_) => Err(ConversionError::FromMapNormals),
+        }
+    }
 }
 
 impl GuiAnalysis {
@@ -321,5 +350,22 @@ impl GuiAnalysis {
             .on_disabled_hover_ui(|ui| {
                 ui.label(disabled_hint);
             })
+    }
+
+    /// Remove ANSI codes from a string.
+    pub(crate) fn strip_ansi_codes(input: &str) -> String {
+        let re = Regex::new(r"\x1B\[[0-9;]*[mK]").unwrap();
+        re.replace_all(input, "").into_owned()
+    }
+
+    /// Format string to fit into a rectangle of specific width.
+    pub(crate) fn insert_newlines(input: &str, n: usize) -> String {
+        input
+            .chars()
+            .collect::<Vec<_>>()
+            .chunks(n)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }

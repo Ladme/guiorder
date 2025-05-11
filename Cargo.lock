@@ -1684,8 +1684,7 @@ dependencies = [
 [[package]]
 name = "gorder"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc8ccc186a066863955a9568427c67626fabb583b6867e562669b43897fd769b"
+source = "git+https://github.com/Ladme/gorder?branch=v0.7.2#36e120fe49999015e43cd4b6a2959dbf4199e6ff"
 dependencies = [
  "backitup",
  "clap",
@@ -1777,9 +1776,12 @@ dependencies = [
 name = "guiorder"
 version = "0.1.0"
 dependencies = [
+ "colored 3.0.0",
  "eframe",
  "gorder",
+ "regex",
  "rfd",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

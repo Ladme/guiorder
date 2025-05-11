@@ -29,6 +29,18 @@ impl Default for OtherParams {
     }
 }
 
+impl From<&gorder::input::Analysis> for OtherParams {
+    fn from(value: &gorder::input::Analysis) -> Self {
+        OtherParams {
+            min_samples: value.min_samples(),
+            n_threads: value.n_threads(),
+            handle_pbc: value.handle_pbc(),
+            overwrite: value.overwrite(),
+            silent: value.silent(),
+        }
+    }
+}
+
 impl GuiAnalysis {
     /// Specify parameters that do not fit elsewhere.
     pub(super) fn specify_other_options(&mut self, ui: &mut Ui) {

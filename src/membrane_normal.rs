@@ -5,7 +5,7 @@
 
 use eframe::egui::{self, RichText, Ui};
 
-use crate::{common::MembraneNormal, GuiAnalysis};
+use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
 
 /// Parameters for dynamic membrane normal calculations.
 #[derive(Debug, Clone)]
@@ -19,6 +19,21 @@ impl Default for DynamicNormalParams {
         DynamicNormalParams {
             heads: String::new(),
             radius: 2.0,
+        }
+    }
+}
+
+impl TryFrom<gorder::input::MembraneNormal> for DynamicNormalParams {
+    type Error = ConversionError;
+    fn try_from(value: gorder::input::MembraneNormal) -> Result<Self, Self::Error> {
+        match value {
+            gorder::input::MembraneNormal::Dynamic(dynamic) => Ok(Self {
+                heads: dynamic.heads().clone(),
+                radius: dynamic.radius(),
+            }),
+            gorder::input::MembraneNormal::FromMap(_) => Err(ConversionError::FromMapNormals),
+            gorder::input::MembraneNormal::Static(_) => Ok(Self::default()),
+            gorder::input::MembraneNormal::FromFile(_) => Ok(Self::default()),
         }
     }
 }
@@ -47,43 +62,56 @@ impl GuiAnalysis {
                         MembraneNormal::Dynamic,
                         "dynamic",
                     );
+                    ui.radio_value(
+                        &mut self.membrane_normal,
+                        MembraneNormal::FromFile,
+                        "from file",
+                    );
                 });
 
                 if self.membrane_normal == MembraneNormal::Dynamic {
                     ui.vertical(|ui| {
-                    Self::specify_string(
-                        &mut self.dynamic_normal_params.heads,
-                        ui,
-                        "Lipid heads: ",
-                        "Selection of lipid atoms representing lipid heads. One atom per molecule!",
-                        true,
-                    );
-
-                    ui.horizontal(|ui| {
-                        let label = Self::label_with_hint(
+                        Self::specify_string(
+                            &mut self.dynamic_normal_params.heads,
                             ui,
-                            "Radius:      ",
-                            "Radius of the scanning sphere for identification of nearby lipid heads."
+                            "Lipid heads: ",
+                            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+                            true,
                         );
 
-                        ui.add(
-                            egui::DragValue::new(
-                                &mut self.dynamic_normal_params.radius,
-                            )
-                            .speed(0.025)
-                            .range(0.0..=f32::MAX)
-                            .suffix(" nm"),
-                        )
-                        .labelled_by(label.id);
-
-                        if self.dynamic_normal_params.radius == 0.0 {
-                            ui.label(
-                                RichText::new("❗")
-                                    .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)),
+                        ui.horizontal(|ui| {
+                            let label = Self::label_with_hint(
+                                ui,
+                                "Radius:      ",
+                                "Radius of the scanning sphere for identification of nearby lipid heads."
                             );
-                        }
+
+                            ui.add(
+                                egui::DragValue::new(
+                                    &mut self.dynamic_normal_params.radius,
+                                )
+                                .speed(0.025)
+                                .range(0.0..=f32::MAX)
+                                .suffix(" nm"),
+                            )
+                            .labelled_by(label.id);
+
+                            if self.dynamic_normal_params.radius == 0.0 {
+                                ui.label(
+                                    RichText::new("❗")
+                                        .color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)),
+                                );
+                            }
+                        });
                     });
-                });
+                } else if self.membrane_normal == MembraneNormal::FromFile {
+                    GuiAnalysis::specify_input_file(
+                        &mut self.from_file_normals,
+                        ui,
+                        "Normals file: ",
+                        "Path to a file specifying the membrane normals to use for individual lipid molecules.",
+                        true
+                    );
                 }
             },
         );
@@ -96,6 +124,7 @@ impl GuiAnalysis {
                 !self.dynamic_normal_params.heads.is_empty()
                     && self.dynamic_normal_params.radius > 0.0
             }
+            MembraneNormal::FromFile => !self.from_file_normals.is_empty(),
             _ => true,
         }
     }

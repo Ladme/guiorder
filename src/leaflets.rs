@@ -6,9 +6,9 @@
 use std::fmt::Display;
 
 use eframe::egui::{self, RichText, Ui};
-use gorder::input::Frequency;
+use gorder::input::{Axis, Frequency};
 
-use crate::{common::MembraneNormal, GuiAnalysis};
+use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
 
 /// Leaflet assignment method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -21,6 +21,25 @@ pub(crate) enum LeafletClassification {
     Clustering,
     FromFile,
     FromNdx,
+}
+
+impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassification {
+    type Error = ConversionError;
+    fn try_from(value: Option<gorder::input::LeafletClassification>) -> Result<Self, Self::Error> {
+        if let Some(leaflets) = value {
+            match leaflets {
+                gorder::input::LeafletClassification::Global(_) => Ok(LeafletClassification::Global),
+                gorder::input::LeafletClassification::Local(_) => Ok(LeafletClassification::Local),
+                gorder::input::LeafletClassification::Individual(_) => Ok(LeafletClassification::Individual),
+                gorder::input::LeafletClassification::Clustering(_) => Ok(LeafletClassification::Clustering),
+                gorder::input::LeafletClassification::FromFile(_) => Ok(LeafletClassification::FromFile),
+                gorder::input::LeafletClassification::FromNdx(_) => Ok(LeafletClassification::FromNdx),
+                gorder::input::LeafletClassification::FromMap(_) => Err(ConversionError::FromMapLeaflets),
+            }
+        } else {
+            Ok(LeafletClassification::None)
+        }
+    }
 }
 
 impl Display for LeafletClassification {
@@ -48,6 +67,94 @@ pub(crate) struct LeafletClassificationParams {
     from_ndx_params: LeafletFromNdxParams,
     frequency: Frequency,
     membrane_normal: Option<MembraneNormal>,
+}
+
+fn convert_axis_option(axis: Option<Axis>) -> Option<MembraneNormal> {
+    match axis {
+        None => None,
+        Some(x) => Some(x.into())
+    }
+}
+
+impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassificationParams {
+    type Error = ConversionError;
+    fn try_from(value: Option<gorder::input::LeafletClassification>) -> Result<Self, Self::Error> {
+        if let Some(leaflets) = value {
+            match leaflets {
+                gorder::input::LeafletClassification::Global(params) => {
+                    Ok(Self {
+                        global_params: LeafletGlobalParams {
+                            membrane: params.membrane().clone(),
+                            heads: params.heads().clone(),
+                        },
+                        frequency: params.frequency(),
+                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                        ..Default::default()
+                    })
+                }
+
+                gorder::input::LeafletClassification::Local(params) => {
+                    Ok(Self {
+                        local_params: LeafletLocalParams {
+                            membrane: params.membrane().clone(),
+                            heads: params.heads().clone(),
+                            radius: params.radius(),
+                        },
+                        frequency: params.frequency(),
+                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                        ..Default::default()
+                    })
+                }
+
+                gorder::input::LeafletClassification::Individual(params) => {
+                    Ok(Self {
+                        individual_params: LeafletIndividualParams {
+                            heads: params.heads().clone(),
+                            methyls: params.methyls().clone(),
+                        },
+                        frequency: params.frequency(),
+                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                        ..Default::default()
+                    })
+                }
+
+                gorder::input::LeafletClassification::Clustering(params) => {
+                    Ok(Self {
+                        clustering_params: LeafletClusteringParams {
+                            heads: params.heads().clone(),
+                        },
+                        frequency: params.frequency(),
+                        ..Default::default()
+                    })
+                } 
+
+                gorder::input::LeafletClassification::FromFile(params) => {
+                    Ok(Self {
+                        from_file_params: LeafletFromFileParams {
+                            file: params.file().clone()
+                        },
+                        frequency: params.frequency(),
+                        ..Default::default()
+                    })
+                }
+                gorder::input::LeafletClassification::FromNdx(params) => {
+                    Ok(Self {
+                        from_ndx_params: LeafletFromNdxParams {
+                            ndx: params.ndx().clone(),
+                            heads: params.heads().clone(),
+                            upper_leaflet: params.upper_leaflet().clone(),
+                            lower_leaflet: params.lower_leaflet().clone(),
+                        },
+                        frequency: params.frequency(),
+                        ..Default::default()
+                    })
+                }
+                gorder::input::LeafletClassification::FromMap(_) => Err(ConversionError::FromMapLeaflets),
+            }
+        } else {
+            Ok(LeafletClassificationParams::default())
+        }
+    }
 }
 
 /// Frequency of the leaflet assignment.
@@ -477,7 +584,7 @@ impl GuiAnalysis {
             }
 
             // signal to the user that membrane normal must be explicitly set
-            if raw_normal == MembraneNormal::Dynamic {
+            if raw_normal == MembraneNormal::Dynamic || raw_normal == MembraneNormal::FromFile {
                 ui.label(RichText::new("❗").color(egui::Color32::from_rgba_premultiplied(150, 0, 0, 100)));
             }
         });

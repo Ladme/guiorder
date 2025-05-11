@@ -20,6 +20,17 @@ pub(crate) enum GeomSelection {
     Sphere,
 }
 
+impl From<Option<gorder::input::Geometry>> for GeomSelection {
+    fn from(value: Option<gorder::input::Geometry>) -> Self {
+        match value {
+            None => GeomSelection::None,
+            Some(gorder::input::Geometry::Cuboid(_)) => GeomSelection::Cuboid,
+            Some(gorder::input::Geometry::Cylinder(_)) => GeomSelection::Cylinder,
+            Some(gorder::input::Geometry::Sphere(_)) => GeomSelection::Sphere,
+        }
+    }
+}
+
 /// Parameters for geometric selection.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct GeomSelectionParams {
@@ -29,6 +40,73 @@ pub(crate) struct GeomSelectionParams {
     reference_type: GeomReferenceType,
     ref_point: Vector3D,
     ref_selection: String,
+}
+
+impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
+    fn from(value: Option<gorder::input::Geometry>) -> Self {
+        match value {
+            None => Self::default(),
+            Some(gorder::input::Geometry::Cuboid(params)) => Self {
+                cuboid: CuboidParams {
+                    minx: params.xdim()[0],
+                    maxx: params.xdim()[1],
+                    miny: params.ydim()[0],
+                    maxy: params.ydim()[1],
+                    minz: params.zdim()[0],
+                    maxz: params.zdim()[1],
+                },
+                reference_type: params.reference().clone().into(),
+                ref_point: get_static_reference_point(params.reference()),
+                ref_selection: get_reference_selection(params.reference()),
+                ..Default::default()
+            },
+            Some(gorder::input::Geometry::Cylinder(params)) => Self {
+                cylinder: CylinderParams {
+                    radius: params.radius(),
+                    start: params.span()[0],
+                    end: params.span()[1],
+                    orientation: params.orientation(),
+                },
+                reference_type: params.reference().clone().into(),
+                ref_point: get_static_reference_point(params.reference()),
+                ref_selection: get_reference_selection(params.reference()),
+                ..Default::default()
+            },
+            Some(gorder::input::Geometry::Sphere(params)) => Self {
+                sphere: SphereParams {
+                    radius: params.radius(),
+                },
+                reference_type: params.reference().clone().into(),
+                ref_point: get_static_reference_point(params.reference()),
+                ref_selection: get_reference_selection(params.reference()),
+                ..Default::default()
+            },
+        }
+    }
+}
+
+impl From<gorder::input::GeomReference> for GeomReferenceType {
+    fn from(value: gorder::input::GeomReference) -> Self {
+        match value {
+            gorder::input::GeomReference::Center => GeomReferenceType::Center,
+            gorder::input::GeomReference::Point(_) => GeomReferenceType::Point,
+            gorder::input::GeomReference::Selection(_) => GeomReferenceType::Selection,
+        }
+    }
+}
+
+fn get_static_reference_point(reference: &gorder::input::GeomReference) -> Vector3D {
+    match reference {
+        gorder::input::GeomReference::Point(x) => x.clone(),
+        _ => Vector3D::default(),
+    }
+}
+
+fn get_reference_selection(reference: &gorder::input::GeomReference) -> String {
+    match reference {
+        gorder::input::GeomReference::Selection(x) => x.clone(),
+        _ => String::new(),
+    }
 }
 
 impl GeomSelectionParams {

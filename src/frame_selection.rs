@@ -15,6 +15,12 @@ pub(crate) struct FrameSelectionParams {
     step: usize,
 }
 
+impl FrameSelectionParams {
+    pub(crate) fn new(begin: f32, end: f32, step: usize) -> Self {
+        Self { begin, end, step }
+    }
+}
+
 impl Default for FrameSelectionParams {
     fn default() -> Self {
         Self {

@@ -25,6 +25,25 @@ impl Default for EstimateErrorParams {
     }
 }
 
+impl From<Option<gorder::input::EstimateError>> for EstimateErrorParams {
+    fn from(value: Option<gorder::input::EstimateError>) -> Self {
+        match value {
+            None => Self {
+                estimate_error: false,
+                ..Default::default()
+            },
+            Some(x) => Self {
+                estimate_error: true,
+                n_blocks: x.n_blocks(),
+                output_convergence: match x.output_convergence().clone() {
+                    None => String::new(),
+                    Some(x) => x.to_string(),
+                },
+            },
+        }
+    }
+}
+
 impl GuiAnalysis {
     pub(super) fn specify_estimate_error(&mut self, ui: &mut Ui) {
         Self::collapsing_with_warning(ui, "Error estimation", false, true, |ui| {

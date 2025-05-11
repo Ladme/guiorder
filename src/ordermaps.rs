@@ -15,6 +15,15 @@ enum OrderMapDimension {
     Manual,
 }
 
+impl From<gorder::input::GridSpan> for OrderMapDimension {
+    fn from(value: gorder::input::GridSpan) -> Self {
+        match value {
+            gorder::input::GridSpan::Auto => OrderMapDimension::Auto,
+            gorder::input::GridSpan::Manual { .. } => OrderMapDimension::Manual,
+        }
+    }
+}
+
 /// Plane in which the ordermaps shall be constructed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum Plane {
@@ -30,6 +39,15 @@ enum Plane {
 struct ManualDimensions {
     start: f32,
     end: f32,
+}
+
+impl From<gorder::input::GridSpan> for ManualDimensions {
+    fn from(value: gorder::input::GridSpan) -> Self {
+        match value {
+            gorder::input::GridSpan::Auto => ManualDimensions::default(),
+            gorder::input::GridSpan::Manual { start, end } => ManualDimensions { start, end },
+        }
+    }
 }
 
 impl Default for ManualDimensions {
@@ -65,6 +83,32 @@ impl Default for OrderMapsParams {
             x_manual: ManualDimensions::default(),
             y_manual: ManualDimensions::default(),
             min_samples: 1,
+        }
+    }
+}
+
+impl From<Option<gorder::input::OrderMap>> for OrderMapsParams {
+    fn from(value: Option<gorder::input::OrderMap>) -> Self {
+        match value {
+            None => Self {
+                calculate_maps: false,
+                ..Default::default()
+            },
+            Some(map) => Self {
+                calculate_maps: true,
+                output_directory: map.output_directory().clone().unwrap_or(String::new()),
+                plane: match map.plane() {
+                    None => None,
+                    Some(gorder::input::Plane::XY) => Some(Plane::XY),
+                    Some(gorder::input::Plane::XZ) => Some(Plane::XZ),
+                    Some(gorder::input::Plane::YZ) => Some(Plane::YZ),
+                },
+                bin_size: map.bin_size(),
+                dimensions: [map.dim()[0].clone().into(), map.dim()[1].clone().into()],
+                x_manual: map.dim()[0].clone().into(),
+                y_manual: map.dim()[1].clone().into(),
+                min_samples: map.min_samples(),
+            },
         }
     }
 }
@@ -106,7 +150,7 @@ impl GuiAnalysis {
                         MembraneNormal::X => Plane::YZ,
                         MembraneNormal::Y => Plane::XZ,
                         MembraneNormal::Z => Plane::XY,
-                        MembraneNormal::Dynamic => Plane::Unknown,
+                        MembraneNormal::Dynamic | MembraneNormal::FromFile => Plane::Unknown,
                     }
                 };
 

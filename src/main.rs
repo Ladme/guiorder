@@ -1,12 +1,16 @@
 // Released under MIT License.
 // Copyright (c) 2025 Ladislav Bartos
 
+use std::rc::Rc;
+
 use common::GuiAnalysis;
 use eframe::egui::{self, RichText, Ui};
 use leaflets::{LeafletClassification, LeafletClassificationParams};
 
 mod analysis_types;
 mod common;
+mod convert;
+mod error;
 mod estimate_error;
 mod frame_selection;
 mod geometry;
@@ -14,6 +18,7 @@ mod leaflets;
 mod membrane_normal;
 mod ordermaps;
 mod other_options;
+mod window;
 
 pub const GUIORDER_VERSION: &str = env!("CARGO_PKG_VERSION");
 const LINE_SPACING: f32 = 10.0;
@@ -56,23 +61,7 @@ impl eframe::App for GuiAnalysis {
                     });
 
                     ui.add_space(20.0);
-
-                    ui.horizontal(|ui| {
-                        ui.vertical_centered(|ui| {
-                            let mut input_yaml = if ui.button("📁 Import from YAML").on_hover_ui(|ui| {
-                                ui.label("Load a YAML configuration file.");
-                            }).clicked() {
-                                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                    Some(path.display().to_string())
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            };
-                        });
-                    });
-
+                    self.import_yaml(ui);
                     ui.separator();
 
                     GuiAnalysis::specify_input_file(
@@ -154,6 +143,8 @@ impl eframe::App for GuiAnalysis {
                     });
 
                     ui.separator();
+
+                    self.windows.render(ctx);
                 });
         });
     }
@@ -168,7 +159,53 @@ struct OutputFiles {
     output_xvg: String,
 }
 
+impl From<&gorder::input::Analysis> for OutputFiles {
+    fn from(value: &gorder::input::Analysis) -> Self {
+        Self {
+            output_yaml: value.output_yaml().clone().unwrap_or(String::new()),
+            output_csv: value.output_csv().clone().unwrap_or(String::new()),
+            output_tab: value.output_tab().clone().unwrap_or(String::new()),
+            output_xvg: value.output_xvg().clone().unwrap_or(String::new()),
+        }
+    }
+}
+
 impl GuiAnalysis {
+    /// Import parameters from a YAML file.
+    fn import_yaml(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.vertical_centered(|ui| {
+                let input_yaml = if ui
+                    .button("📁 Import from YAML")
+                    .on_hover_ui(|ui| {
+                        ui.label("Load a YAML configuration file.");
+                    })
+                    .clicked()
+                {
+                    if let Some(path) = rfd::FileDialog::new().pick_file() {
+                        Some(path.display().to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(input) = input_yaml {
+                    match gorder::input::Analysis::from_file(&input) {
+                        Err(e) => self.open_window(Rc::new(e)),
+                        Ok(analysis) => match analysis.try_into() {
+                            Err(e) => self.open_window(Rc::new(e)),
+                            Ok(converted) => {
+                                *self = converted;
+                            }
+                        },
+                    }
+                }
+            });
+        });
+    }
+
     /// Specify optional paths to a bonds file and an NDX file.
     fn specify_advanced_input(&mut self, ui: &mut Ui) {
         ui.collapsing(
