@@ -97,7 +97,7 @@ impl GuiAnalysis {
                 })
                 .clicked()
             {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                if let Some(path) = rfd::FileDialog::new().set_directory(".").pick_file() {
                     *target = path.display().to_string();
                 }
             }
@@ -134,7 +134,7 @@ impl GuiAnalysis {
                     })
                     .clicked()
                 {
-                    if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                    if let Some(paths) = rfd::FileDialog::new().set_directory(".").pick_files() {
                         target.clear();
                         for file in paths {
                             target.push(file.display().to_string())
@@ -208,7 +208,7 @@ impl GuiAnalysis {
                     })
                     .clicked()
                 {
-                    if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                    if let Some(paths) = rfd::FileDialog::new().set_directory(".").pick_files() {
                         target.clear();
                         for file in paths {
                             target.push(file.display().to_string())
@@ -254,7 +254,7 @@ impl GuiAnalysis {
                 })
                 .clicked()
             {
-                if let Some(path) = rfd::FileDialog::new().save_file() {
+                if let Some(path) = rfd::FileDialog::new().set_directory(".").save_file() {
                     *target = path.display().to_string();
                 }
             }
