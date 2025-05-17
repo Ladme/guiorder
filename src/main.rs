@@ -12,7 +12,7 @@ use std::{
 use colored::Colorize;
 use common::GuiAnalysis;
 use eframe::egui::{self, RichText, Ui};
-use gorder::{colog_info, errors::WriteError};
+use gorder::colog_info;
 use leaflets::{LeafletClassification, LeafletClassificationParams};
 use window::Windows;
 
