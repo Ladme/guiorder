@@ -159,6 +159,76 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
     }
 }
 
+impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
+    type Error = ConversionError;
+
+    fn try_from(value: &GuiAnalysis) -> Result<Self, Self::Error> {
+        fn add_normal(
+            method: gorder::input::LeafletClassification,
+            normal: Option<MembraneNormal>,
+        ) -> gorder::input::LeafletClassification {
+            if let Some(normal) = normal {
+                method.with_membrane_normal(normal.into())
+            } else {
+                method
+            }
+        }
+
+        let params = &value.leaflet_classification_params;
+
+        match value.leaflet_classification_method {
+            LeafletClassification::None => Ok(None),
+            LeafletClassification::Global => Ok(Some(add_normal(
+                gorder::input::LeafletClassification::global(
+                    &params.global_params.membrane,
+                    &params.global_params.heads,
+                )
+                .with_frequency(params.frequency),
+                params.membrane_normal,
+            ))),
+            LeafletClassification::Local => Ok(Some(add_normal(
+                gorder::input::LeafletClassification::local(
+                    &params.local_params.membrane,
+                    &params.local_params.heads,
+                    params.local_params.radius,
+                )
+                .with_frequency(params.frequency),
+                params.membrane_normal,
+            ))),
+            LeafletClassification::Individual => Ok(Some(add_normal(
+                gorder::input::LeafletClassification::individual(
+                    &params.individual_params.heads,
+                    &params.individual_params.methyls,
+                )
+                .with_frequency(params.frequency),
+                params.membrane_normal,
+            ))),
+            LeafletClassification::Clustering => Ok(Some(
+                gorder::input::LeafletClassification::clustering(&params.clustering_params.heads)
+                    .with_frequency(params.frequency),
+            )),
+            LeafletClassification::FromFile => Ok(Some(
+                gorder::input::LeafletClassification::from_file(&params.from_file_params.file)
+                    .with_frequency(params.frequency),
+            )),
+            LeafletClassification::FromNdx => Ok(Some(
+                gorder::input::LeafletClassification::from_ndx(
+                    &params
+                        .from_ndx_params
+                        .ndx
+                        .iter()
+                        .map(|x| x.as_str())
+                        .collect::<Vec<&str>>(),
+                    &params.from_ndx_params.heads,
+                    &params.from_ndx_params.upper_leaflet,
+                    &params.from_ndx_params.lower_leaflet,
+                )
+                .with_frequency(params.frequency),
+            )),
+        }
+    }
+}
+
 /// Frequency of the leaflet assignment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum RawFrequency {

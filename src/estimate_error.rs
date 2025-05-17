@@ -5,7 +5,7 @@
 
 use eframe::egui::{DragValue, Ui};
 
-use crate::GuiAnalysis;
+use crate::{error::ConversionError, GuiAnalysis};
 
 #[derive(Debug, Clone)]
 /// Parameters for the error estimation.
@@ -41,6 +41,25 @@ impl From<Option<gorder::input::EstimateError>> for EstimateErrorParams {
                 },
             },
         }
+    }
+}
+
+impl TryFrom<&EstimateErrorParams> for Option<gorder::input::EstimateError> {
+    type Error = ConversionError;
+    fn try_from(value: &EstimateErrorParams) -> Result<Self, Self::Error> {
+        if !value.estimate_error {
+            return Ok(None);
+        }
+
+        let convergence = match value.output_convergence.is_empty() {
+            false => Some(value.output_convergence.as_str()),
+            true => None,
+        };
+
+        Ok(Some(
+            gorder::input::EstimateError::new(Some(value.n_blocks), convergence)
+                .map_err(|e| ConversionError::InvalidEstimateError(e.to_string()))?,
+        ))
     }
 }
 

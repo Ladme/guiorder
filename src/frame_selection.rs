@@ -10,9 +10,9 @@ use crate::GuiAnalysis;
 /// Parameters for frame selection.
 #[derive(Debug, Clone)]
 pub(crate) struct FrameSelectionParams {
-    begin: f32,
-    end: f32,
-    step: usize,
+    pub begin: f32,
+    pub end: f32,
+    pub step: usize,
 }
 
 impl FrameSelectionParams {

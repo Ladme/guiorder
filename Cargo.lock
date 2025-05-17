@@ -537,9 +537,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "backitup"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a42e434f3c779825f3467207319c808863c7acae2d57d296faf1ebd6b7093d09"
+checksum = "28a625a14107d3a5edff553f32227992f3fab2d8179e4ff58d831afeb04f55a0"
 dependencies = [
  "chrono",
 ]
@@ -1684,7 +1684,7 @@ dependencies = [
 [[package]]
 name = "gorder"
 version = "0.7.2"
-source = "git+https://github.com/Ladme/gorder?rev=259c530a2496fffb8bb657a553096ed59c6936dd#259c530a2496fffb8bb657a553096ed59c6936dd"
+source = "git+https://github.com/Ladme/gorder?rev=0e359f8#0e359f86abd2aaab5db76c5b055b22c49fce0a49"
 dependencies = [
  "backitup",
  "clap",

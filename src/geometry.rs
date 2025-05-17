@@ -8,7 +8,7 @@ use std::fmt::Display;
 use eframe::egui::{self, ComboBox, DragValue, Response, RichText, Ui};
 use gorder::{input::Axis, prelude::Vector3D};
 
-use crate::GuiAnalysis;
+use crate::{error::ConversionError, GuiAnalysis};
 
 /// Geometric selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -85,12 +85,61 @@ impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
     }
 }
 
+impl TryFrom<&GuiAnalysis> for Option<gorder::input::Geometry> {
+    type Error = ConversionError;
+
+    fn try_from(value: &GuiAnalysis) -> Result<Self, Self::Error> {
+        let params = &value.geom_selection_params;
+        let reference = gorder::input::GeomReference::from(params);
+
+        match value.geom_selection {
+            GeomSelection::None => Ok(None),
+            GeomSelection::Cuboid => Ok(Some(
+                gorder::input::Geometry::cuboid(
+                    reference,
+                    [params.cuboid.minx, params.cuboid.maxx],
+                    [params.cuboid.miny, params.cuboid.maxy],
+                    [params.cuboid.minz, params.cuboid.maxz],
+                )
+                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+            )),
+            GeomSelection::Cylinder => Ok(Some(
+                gorder::input::Geometry::cylinder(
+                    reference,
+                    params.cylinder.radius,
+                    [params.cylinder.start, params.cylinder.end],
+                    params.cylinder.orientation,
+                )
+                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+            )),
+            GeomSelection::Sphere => Ok(Some(
+                gorder::input::Geometry::sphere(reference, params.sphere.radius)
+                    .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+            )),
+        }
+    }
+}
+
 impl From<gorder::input::GeomReference> for GeomReferenceType {
     fn from(value: gorder::input::GeomReference) -> Self {
         match value {
             gorder::input::GeomReference::Center => GeomReferenceType::Center,
             gorder::input::GeomReference::Point(_) => GeomReferenceType::Point,
             gorder::input::GeomReference::Selection(_) => GeomReferenceType::Selection,
+        }
+    }
+}
+
+impl From<&GeomSelectionParams> for gorder::input::GeomReference {
+    fn from(value: &GeomSelectionParams) -> Self {
+        match value.reference_type {
+            GeomReferenceType::Point => {
+                gorder::input::GeomReference::Point(value.ref_point.clone())
+            }
+            GeomReferenceType::Selection => {
+                gorder::input::GeomReference::Selection(value.ref_selection.clone())
+            }
+            GeomReferenceType::Center => gorder::input::GeomReference::Center,
         }
     }
 }

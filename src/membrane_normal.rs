@@ -4,6 +4,7 @@
 //! Parameters related to membrane normal.
 
 use eframe::egui::{self, RichText, Ui};
+use gorder::input::{Axis, DynamicNormal};
 
 use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
 
@@ -34,6 +35,28 @@ impl TryFrom<gorder::input::MembraneNormal> for DynamicNormalParams {
             gorder::input::MembraneNormal::FromMap(_) => Err(ConversionError::FromMapNormals),
             gorder::input::MembraneNormal::Static(_) => Ok(Self::default()),
             gorder::input::MembraneNormal::FromFile(_) => Ok(Self::default()),
+        }
+    }
+}
+
+impl TryFrom<&GuiAnalysis> for gorder::input::MembraneNormal {
+    type Error = ConversionError;
+
+    fn try_from(value: &GuiAnalysis) -> Result<Self, Self::Error> {
+        match value.membrane_normal {
+            MembraneNormal::X => Ok(gorder::input::MembraneNormal::Static(Axis::X)),
+            MembraneNormal::Y => Ok(gorder::input::MembraneNormal::Static(Axis::Y)),
+            MembraneNormal::Z => Ok(gorder::input::MembraneNormal::Static(Axis::Z)),
+            MembraneNormal::FromFile => Ok(gorder::input::MembraneNormal::FromFile(
+                value.from_file_normals.clone(),
+            )),
+            MembraneNormal::Dynamic => Ok(gorder::input::MembraneNormal::Dynamic(
+                DynamicNormal::new(
+                    &value.dynamic_normal_params.heads,
+                    value.dynamic_normal_params.radius,
+                )
+                .map_err(|e| ConversionError::InvalidMembraneNormal(e.to_string()))?,
+            )),
         }
     }
 }

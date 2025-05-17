@@ -62,6 +62,20 @@ impl From<Axis> for MembraneNormal {
     }
 }
 
+impl From<MembraneNormal> for Axis {
+    fn from(value: MembraneNormal) -> Self {
+        match value {
+            MembraneNormal::X => Axis::X,
+            MembraneNormal::Y => Axis::Y,
+            MembraneNormal::Z => Axis::Z,
+            _ => panic!(
+                "FATAL GUIORDER ERROR | MembraneNormal -> Axis | Cannot convert {:?} to axis.",
+                value
+            ),
+        }
+    }
+}
+
 impl TryFrom<gorder::input::MembraneNormal> for MembraneNormal {
     type Error = ConversionError;
     fn try_from(value: gorder::input::MembraneNormal) -> Result<Self, Self::Error> {

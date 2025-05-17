@@ -10,10 +10,10 @@ use crate::GuiAnalysis;
 /// Parameters that do not fit elsewhere.
 #[derive(Debug, Clone)]
 pub(crate) struct OtherParams {
-    min_samples: usize,
+    pub min_samples: usize,
     pub n_threads: usize,
-    handle_pbc: bool,
-    overwrite: bool,
+    pub handle_pbc: bool,
+    pub overwrite: bool,
     pub silent: bool,
 }
 

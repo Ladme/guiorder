@@ -50,6 +50,7 @@ impl TryFrom<&GuiAnalysis> for Analysis {
 
         let analysis_type = gorder::input::AnalysisType::from(value);
 
+        // basic input
         analysis
             .structure(&value.structure)
             .trajectory(value.trajectory.clone())
@@ -67,8 +68,58 @@ impl TryFrom<&GuiAnalysis> for Analysis {
             analysis.output_xvg(&value.output.output_xvg);
         }
 
+        // other input files
+        if !value.ndx.is_empty() {
+            analysis.index(&value.ndx);
+        }
+
+        if !value.bonds.is_empty() {
+            analysis.bonds(&value.bonds);
+        }
+
+        // frame selection
+        analysis
+            .begin(value.frame_selection_params.begin)
+            .end(value.frame_selection_params.end)
+            .step(value.frame_selection_params.step);
+
+        // membrane normals
+        analysis.membrane_normal(gorder::input::MembraneNormal::try_from(value)?);
+
+        // estimate error
+        if let Some(ee) =
+            Option::<gorder::input::EstimateError>::try_from(&value.estimate_error_params)?
+        {
+            analysis.estimate_error(ee);
+        }
+
+        // leaflet classification
+        if let Some(leaflets) = Option::<gorder::input::LeafletClassification>::try_from(value)? {
+            analysis.leaflets(leaflets);
+        }
+
+        // geometry selection
+        if let Some(geometry) = Option::<gorder::input::Geometry>::try_from(value)? {
+            analysis.geometry(geometry);
+        }
+
+        // ordermaps
         if let Some(params) = (&value.ordermaps_params).try_into()? {
             analysis.ordermap(params);
+        }
+
+        // other parameters
+        analysis
+            .min_samples(value.other_params.min_samples)
+            .n_threads(value.other_params.n_threads)
+            .handle_pbc(value.other_params.handle_pbc);
+
+        if value.other_params.silent {
+            analysis.silent();
+        }
+
+        if value.other_params.overwrite {
+            analysis.overwrite();
         }
 
         analysis
