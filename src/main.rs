@@ -260,16 +260,6 @@ impl GuiOrderApp {
 
     /// Convert the GuiAnalysis to gorder analysis structure and run the analysis.
     fn run_analysis(&mut self) {
-        if !self.analysis.other_params.silent {
-            let header = format!(">>> GORDER v{} <<<", gorder::GORDER_VERSION).bold();
-            println!("\n{}\n", header);
-        }
-
-        colog_info!(
-            "Analysis parameters supplied by {}.",
-            format!("guiorder v{}", GUIORDER_VERSION)
-        );
-
         let converted = match gorder::input::Analysis::try_from(&self.analysis) {
             Err(e) => {
                 self.open_error_window(Box::from(e));
@@ -277,6 +267,19 @@ impl GuiOrderApp {
             }
             Ok(x) => x,
         };
+
+        if !self.analysis.other_params.silent {
+            log::set_max_level(log::LevelFilter::Info);
+            let header = format!(">>> GORDER v{} <<<", gorder::GORDER_VERSION).bold();
+            println!("\n{}\n", header);
+        } else {
+            log::set_max_level(log::LevelFilter::Error);
+        }
+
+        colog_info!(
+            "Analysis parameters supplied by {}.",
+            format!("guiorder v{}", GUIORDER_VERSION)
+        );
 
         let is_running = Arc::clone(&self.running);
         *self.running.lock().unwrap() = true;
