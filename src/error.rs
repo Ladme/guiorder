@@ -13,4 +13,8 @@ pub enum ConversionError {
     FromMapNormals,
     #[error("{} guiorder does not support inline specification of leaflet assignment", "error:".red().bold())]
     FromMapLeaflets,
+    #[error("{} could not convert ordermap parameters into the gorder structure (details: {})", "error:".red().bold(), .0.yellow())]
+    InvalidOrderMapParams(String),
+    #[error("{} could not convert analysis parameters into the gorder structure (details: {})", "error:".red().bold(), .0.yellow())]
+    InvalidAnalysisParams(String),
 }

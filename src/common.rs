@@ -5,7 +5,6 @@
 
 use eframe::egui::{self, CollapsingResponse, CursorIcon, Response, RichText, Ui};
 use gorder::input::Axis;
-use regex::Regex;
 
 use crate::{
     analysis_types::{AnalysisType, AnalysisTypeParams},
@@ -16,7 +15,6 @@ use crate::{
     membrane_normal::DynamicNormalParams,
     ordermaps::OrderMapsParams,
     other_options::OtherParams,
-    window::Windows,
     LeafletClassification, LeafletClassificationParams, OutputFiles,
 };
 
@@ -41,7 +39,6 @@ pub(crate) struct GuiAnalysis {
     pub other_params: OtherParams,
     pub geom_selection: GeomSelection,
     pub geom_selection_params: GeomSelectionParams,
-    pub windows: Windows,
 }
 
 /// Direction of the membrane nornal.
@@ -335,38 +332,30 @@ impl GuiAnalysis {
         response
     }
 
-    /// A button that can be disabled showing different hint in enabled and disabled state.
+    /// A button that can be disabled showing different hints in enabled and multiple disabled states.
     pub(crate) fn smart_button(
         ui: &mut Ui,
         enabled: bool,
+        running: bool,
         text: &str,
         enabled_hint: &str,
         disabled_hint: &str,
+        running_hint: &str,
     ) -> egui::Response {
-        ui.add_enabled(enabled, egui::Button::new(text))
-            .on_hover_ui(|ui| {
-                ui.label(enabled_hint);
-            })
-            .on_disabled_hover_ui(|ui| {
-                ui.label(disabled_hint);
-            })
-    }
-
-    /// Remove ANSI codes from a string.
-    pub(crate) fn strip_ansi_codes(input: &str) -> String {
-        let re = Regex::new(r"\x1B\[[0-9;]*[mK]").unwrap();
-        re.replace_all(input, "").into_owned()
-    }
-
-    /// Format string to fit into a rectangle of specific width.
-    pub(crate) fn insert_newlines(input: &str, n: usize) -> String {
-        input
-            .chars()
-            .collect::<Vec<_>>()
-            .chunks(n)
-            .map(|chunk| chunk.iter().collect::<String>())
-            .collect::<Vec<_>>()
-            .join("\n")
+        if !running {
+            ui.add_enabled(enabled, egui::Button::new(text))
+                .on_hover_ui(|ui| {
+                    ui.label(enabled_hint);
+                })
+                .on_disabled_hover_ui(|ui| {
+                    ui.label(disabled_hint);
+                })
+        } else {
+            ui.add_enabled(false, egui::Button::new(text))
+                .on_disabled_hover_ui(|ui| {
+                    ui.label(running_hint);
+                })
+        }
     }
 }
 

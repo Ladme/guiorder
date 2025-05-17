@@ -1,11 +1,17 @@
 // Released under MIT License.
 // Copyright (c) 2025 Ladislav Bartos
 
-use std::rc::Rc;
+use std::{
+    sync::{Arc, Mutex},
+    thread::JoinHandle,
+};
 
+use colored::Colorize;
 use common::GuiAnalysis;
 use eframe::egui::{self, RichText, Ui};
+use gorder::colog_info;
 use leaflets::{LeafletClassification, LeafletClassificationParams};
+use window::Windows;
 
 mod analysis_types;
 mod common;
@@ -30,17 +36,30 @@ fn main() -> eframe::Result {
             .with_resizable(false),
         ..Default::default()
     };
+
+    colog::init();
+
     eframe::run_native(
         &format!("guiorder v{}", GUIORDER_VERSION),
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
-            Ok(Box::<GuiAnalysis>::default())
+            Ok(Box::from(GuiOrderApp::default()))
         }),
     )
 }
 
-impl eframe::App for GuiAnalysis {
+/// Structure handling the entire application.
+#[derive(Debug, Default)]
+pub(crate) struct GuiOrderApp {
+    analysis: GuiAnalysis,
+    windows: Windows,
+    /// Analysis running?
+    running: Arc<Mutex<bool>>,
+    thread_handle: Mutex<Option<JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>>>>,
+}
+
+impl eframe::App for GuiOrderApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical()
@@ -65,21 +84,21 @@ impl eframe::App for GuiAnalysis {
                     ui.separator();
 
                     GuiAnalysis::specify_input_file(
-                        &mut self.structure,
+                        &mut self.analysis.structure,
                         ui,
                         "Structure:   ",
                         "Path to a file containing the structure of the system.",
                         true,
                     );
                     GuiAnalysis::specify_multiple_input_files(
-                        &mut self.trajectory,
+                        &mut self.analysis.trajectory,
                         ui,
                         "Trajectory:  ",
                         "Path to a file containing the trajectory to analyze. Provide multiple files by clicking the '+' button or by selecting them interactively.",
                         true,
                     );
                     GuiAnalysis::specify_output_file(
-                        &mut self.output.output_yaml,
+                        &mut self.analysis.output.output_yaml,
                         ui,
                         "Output YAML: ",
                         "Path to an output YAML file where the full results of the analysis will be saved.",
@@ -87,27 +106,27 @@ impl eframe::App for GuiAnalysis {
                     );
 
                     ui.separator();
-                    self.specify_analysis_type(ui);
+                    self.analysis.specify_analysis_type(ui);
                     ui.separator();
 
                     ui.add_space(LINE_SPACING);
-                    self.specify_advanced_input(ui);
+                    self.analysis.specify_advanced_input(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_advanced_output(ui);
+                    self.analysis.specify_advanced_output(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_frame_selection(ui);
+                    self.analysis.specify_frame_selection(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_membrane_normal(ui);
+                    self.analysis.specify_membrane_normal(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_leaflet_classification(ui);
+                    self.analysis.specify_leaflet_classification(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_ordermaps(ui);
+                    self.analysis.specify_ordermaps(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_geometry(ui);
+                    self.analysis.specify_geometry(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_estimate_error(ui);
+                    self.analysis.specify_estimate_error(ui);
                     ui.add_space(LINE_SPACING);
-                    self.specify_other_options(ui);
+                    self.analysis.specify_other_options(ui);
                     ui.add_space(LINE_SPACING);
 
                     ui.separator();
@@ -125,25 +144,58 @@ impl eframe::App for GuiAnalysis {
                         ui.separator();
                         ui.add_space(46.0);
 
-                        let hint = if self.other_params.n_threads >= 2 {
-                            format!("Perform the analysis using {} threads.", self.other_params.n_threads)
+                        let hint = if self.analysis.other_params.n_threads >= 2 {
+                            format!("Perform the analysis using {} threads.", self.analysis.other_params.n_threads)
                         } else {
                             format!("Perform the analysis using 1 thread.")
                         };
 
-                        if Self::smart_button(
+                        if GuiAnalysis::smart_button(
                             ui,
-                            self.check_sanity(),
+                            self.analysis.check_sanity(),
+                            *self.running.lock().unwrap(),
                             "🔥 Run the analysis",
                             &hint,
-                            "Cannot run the analysis because some options are missing."
+                            "Cannot run the analysis because some options are missing.", 
+                            "Analysis is already running."
                         ).clicked() {
-                            // todo; convert and run
+                            self.run_analysis();
                         };
                     });
 
                     ui.separator();
 
+                    // display that the analysis is running
+                    if *self.running.lock().unwrap() {
+                        ui.horizontal(|ui| {
+                            ui.add_space(10.0);
+                            ui.spinner();
+                            ui.label(
+                                RichText::new("Analysis is running. See the terminal for more details.")
+                                    .font(egui::FontId::monospace(12.0))
+                            );
+                        });
+                    // check for errors during the analysis
+                    } else {
+                        let handle = self.thread_handle.lock().unwrap().take();
+                        match handle {
+                            None => (), // no result, do nothing
+                            Some(handle) => {
+                                match handle.join().unwrap() {
+                                    Ok(_) => {
+                                        Self::display_result(true, self.analysis.other_params.silent);
+                                    }
+                                    Err(e) => {
+                                        log::error!("{}", e);
+                                        Self::display_result(false, self.analysis.other_params.silent);
+                                        self.open_error_window(e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // render windows
                     self.windows.render(ctx);
                 });
         });
@@ -170,7 +222,7 @@ impl From<&gorder::input::Analysis> for OutputFiles {
     }
 }
 
-impl GuiAnalysis {
+impl GuiOrderApp {
     /// Import parameters from a YAML file.
     fn import_yaml(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
@@ -193,11 +245,11 @@ impl GuiAnalysis {
 
                 if let Some(input) = input_yaml {
                     match gorder::input::Analysis::from_file(&input) {
-                        Err(e) => self.open_window(Rc::new(e)),
+                        Err(e) => self.open_error_window(Box::from(e)),
                         Ok(analysis) => match analysis.try_into() {
-                            Err(e) => self.open_window(Rc::new(e)),
+                            Err(e) => self.open_error_window(Box::from(e)),
                             Ok(converted) => {
-                                *self = converted;
+                                self.analysis = converted;
                             }
                         },
                     }
@@ -206,6 +258,85 @@ impl GuiAnalysis {
         });
     }
 
+    /// Convert the GuiAnalysis to gorder analysis structure and run the analysis.
+    fn run_analysis(&mut self) {
+        if !self.analysis.other_params.silent {
+            let header = format!(">>> GORDER v{} <<<", gorder::GORDER_VERSION).bold();
+            println!("\n{}\n", header);
+        }
+
+        colog_info!(
+            "Analysis parameters supplied by {}.",
+            format!("guiorder v{}", GUIORDER_VERSION)
+        );
+
+        let converted = match gorder::input::Analysis::try_from(&self.analysis) {
+            Err(e) => {
+                self.open_error_window(Box::from(e));
+                return;
+            }
+            Ok(x) => x,
+        };
+
+        let is_running = Arc::clone(&self.running);
+        *self.running.lock().unwrap() = true;
+
+        let handle = std::thread::spawn(
+            move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                match converted.run() {
+                    Err(e) => {
+                        *is_running.lock().unwrap() = false;
+                        Err(e)
+                    }
+                    Ok(results) => match results.write() {
+                        Err(e) => {
+                            *is_running.lock().unwrap() = false;
+                            Err(Box::from(e))
+                        }
+                        Ok(_) => {
+                            *is_running.lock().unwrap() = false;
+                            Ok(())
+                        }
+                    },
+                }
+            },
+        );
+
+        *self.thread_handle.lock().unwrap() = Some(handle);
+    }
+
+    /// Display the result of the analysis.
+    fn display_result(result: bool, silent: bool) {
+        if silent {
+            return;
+        }
+
+        match result {
+            true => {
+                let prefix = format!(
+                    "{}{}{}",
+                    "[".to_string().blue().bold(),
+                    "✔".to_string().bright_green().bold(),
+                    "]".to_string().blue().bold()
+                );
+                let message = "ANALYSIS COMPLETED".to_string().bright_green().bold();
+                println!("{} {}\n", prefix, message);
+            }
+            false => {
+                let prefix = format!(
+                    "{}{}{}",
+                    "[".to_string().blue().bold(),
+                    "✖".to_string().red().bold(),
+                    "]".to_string().blue().bold()
+                );
+                let message = "ANALYSIS FAILED".to_string().red().bold();
+                println!("{} {}\n", prefix, message);
+            }
+        }
+    }
+}
+
+impl GuiAnalysis {
     /// Specify optional paths to a bonds file and an NDX file.
     fn specify_advanced_input(&mut self, ui: &mut Ui) {
         ui.collapsing(

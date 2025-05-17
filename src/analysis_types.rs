@@ -88,6 +88,43 @@ impl From<gorder::input::AnalysisType> for AnalysisTypeParams {
     }
 }
 
+impl From<&GuiAnalysis> for gorder::input::AnalysisType {
+    fn from(value: &GuiAnalysis) -> Self {
+        match value.analysis_type {
+            AnalysisType::AAOrder => gorder::input::AnalysisType::aaorder(
+                &value.analysis_type_params.aa_params.heavy_atoms,
+                &value.analysis_type_params.aa_params.hydrogens,
+            ),
+            AnalysisType::CGOrder => {
+                gorder::input::AnalysisType::cgorder(&value.analysis_type_params.cg_params.beads)
+            }
+            AnalysisType::UAOrder => {
+                let uaparams = &value.analysis_type_params.ua_params;
+                let saturated = match uaparams.saturated.is_empty() {
+                    true => None,
+                    false => Some(&uaparams.saturated),
+                };
+
+                let unsaturated = match uaparams.unsaturated.is_empty() {
+                    true => None,
+                    false => Some(&uaparams.unsaturated),
+                };
+
+                let ignore = match uaparams.ignore.is_empty() {
+                    true => None,
+                    false => Some(&uaparams.ignore),
+                };
+
+                gorder::input::AnalysisType::uaorder(
+                    saturated.map(|x| x.as_str()),
+                    unsaturated.map(|x| x.as_str()),
+                    ignore.map(|x| x.as_str()),
+                )
+            }
+        }
+    }
+}
+
 impl GuiAnalysis {
     /// Specify the type of analysis to perform and parameters for it.
     pub(super) fn specify_analysis_type(&mut self, ui: &mut Ui) {
@@ -135,14 +172,14 @@ impl GuiAnalysis {
                     ui,
                     "Saturated carbons:   ",
                     "Selection of saturated carbons to be used in the analysis.",
-                    true,
+                    false,
                 );
                 Self::specify_string(
                     &mut self.analysis_type_params.ua_params.unsaturated,
                     ui,
                     "Unsaturated carbons: ",
                     "Selection of unsaturated carbons to be used in the analysis.",
-                    true,
+                    false,
                 );
                 Self::specify_string(
                     &mut self.analysis_type_params.ua_params.ignore,
@@ -172,10 +209,7 @@ impl GuiAnalysis {
                     && !self.analysis_type_params.aa_params.hydrogens.is_empty()
             }
             AnalysisType::CGOrder => !self.analysis_type_params.cg_params.beads.is_empty(),
-            AnalysisType::UAOrder => {
-                !self.analysis_type_params.ua_params.saturated.is_empty()
-                    && !self.analysis_type_params.ua_params.unsaturated.is_empty()
-            }
+            AnalysisType::UAOrder => true, // no compulsory parameters
         }
     }
 }

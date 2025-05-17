@@ -5,9 +5,7 @@
 
 use gorder::input::Analysis;
 
-use crate::{
-    error::ConversionError, frame_selection::FrameSelectionParams, window::Windows, GuiAnalysis,
-};
+use crate::{error::ConversionError, frame_selection::FrameSelectionParams, GuiAnalysis};
 
 impl TryFrom<Analysis> for GuiAnalysis {
     type Error = ConversionError;
@@ -41,7 +39,40 @@ impl TryFrom<Analysis> for GuiAnalysis {
             geom_selection_params: value.geometry().clone().into(),
             ordermaps_params: value.map().clone().into(),
             other_params: (&value).into(),
-            windows: Windows::default(),
         })
+    }
+}
+
+impl TryFrom<&GuiAnalysis> for Analysis {
+    type Error = ConversionError;
+    fn try_from(value: &GuiAnalysis) -> Result<Self, Self::Error> {
+        let mut analysis = Analysis::builder();
+
+        let analysis_type = gorder::input::AnalysisType::from(value);
+
+        analysis
+            .structure(&value.structure)
+            .trajectory(value.trajectory.clone())
+            .output_yaml(&value.output.output_yaml)
+            .analysis_type(analysis_type);
+
+        // output files
+        if !value.output.output_tab.is_empty() {
+            analysis.output_tab(&value.output.output_tab);
+        }
+        if !value.output.output_csv.is_empty() {
+            analysis.output_csv(&value.output.output_csv);
+        }
+        if !value.output.output_xvg.is_empty() {
+            analysis.output_xvg(&value.output.output_xvg);
+        }
+
+        if let Some(params) = (&value.ordermaps_params).try_into()? {
+            analysis.ordermap(params);
+        }
+
+        analysis
+            .build()
+            .map_err(|e| ConversionError::InvalidAnalysisParams(e.to_string()))
     }
 }

@@ -5,7 +5,7 @@
 
 use eframe::egui::{self, RichText, Ui};
 
-use crate::{common::MembraneNormal, GuiAnalysis};
+use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
 
 /// How are ordermap dimensions set?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -110,6 +110,58 @@ impl From<Option<gorder::input::OrderMap>> for OrderMapsParams {
                 min_samples: map.min_samples(),
             },
         }
+    }
+}
+
+impl TryFrom<&OrderMapsParams> for Option<gorder::input::OrderMap> {
+    type Error = ConversionError;
+    fn try_from(value: &OrderMapsParams) -> Result<Self, Self::Error> {
+        if !value.calculate_maps {
+            return Ok(None);
+        }
+
+        let dimension_x = match value.dimensions[0] {
+            OrderMapDimension::Auto => gorder::input::GridSpan::Auto,
+            OrderMapDimension::Manual => {
+                gorder::input::GridSpan::manual(value.x_manual.start, value.x_manual.end).unwrap()
+            }
+        };
+
+        let dimension_y = match value.dimensions[1] {
+            OrderMapDimension::Auto => gorder::input::GridSpan::Auto,
+            OrderMapDimension::Manual => {
+                gorder::input::GridSpan::manual(value.y_manual.start, value.y_manual.end).unwrap()
+            }
+        };
+
+        let mut builder = gorder::input::OrderMap::builder();
+
+        builder
+            .output_directory(&value.output_directory)
+            .bin_size(value.bin_size)
+            .dim([dimension_x, dimension_y])
+            .min_samples(value.min_samples);
+
+        if let Some(plane) = value.plane {
+            let converted_plane = match plane {
+                Plane::XY => gorder::input::Plane::XY,
+                Plane::XZ => gorder::input::Plane::XZ,
+                Plane::YZ => gorder::input::Plane::YZ,
+                Plane::Unknown => {
+                    return Err(ConversionError::InvalidOrderMapParams(String::from(
+                        "unknown plane",
+                    )))
+                }
+            };
+
+            builder.plane(converted_plane);
+        }
+
+        let ordermap = builder
+            .build()
+            .map_err(|e| ConversionError::InvalidOrderMapParams(e.to_string()))?;
+
+        Ok(Some(ordermap))
     }
 }
 

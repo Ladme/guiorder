@@ -14,7 +14,7 @@ pub(crate) struct OtherParams {
     pub n_threads: usize,
     handle_pbc: bool,
     overwrite: bool,
-    silent: bool,
+    pub silent: bool,
 }
 
 impl Default for OtherParams {
