@@ -161,10 +161,8 @@ fn get_reference_selection(reference: &gorder::input::GeomReference) -> String {
 impl GeomSelectionParams {
     /// Allows drag value to get changed from infinity.
     fn change_from_infinity(response: &Response, value: &mut f32, target: f32) {
-        if value.is_infinite() {
-            if response.dragged() {
-                *value = target;
-            }
+        if value.is_infinite() && response.dragged() {
+            *value = target;
         }
     }
 
@@ -485,7 +483,7 @@ impl GuiAnalysis {
                             ] {
                                 ui.selectable_value(
                                     &mut self.geom_selection,
-                                    variant.clone(),
+                                    variant,
                                     format!("{}", variant),
                                 );
                             }

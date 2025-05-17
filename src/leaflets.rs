@@ -82,10 +82,7 @@ pub(crate) struct LeafletClassificationParams {
 }
 
 fn convert_axis_option(axis: Option<Axis>) -> Option<MembraneNormal> {
-    match axis {
-        None => None,
-        Some(x) => Some(x.into()),
-    }
+    axis.map(|x| x.into())
 }
 
 impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassificationParams {
@@ -99,7 +96,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         heads: params.heads().clone(),
                     },
                     frequency: params.frequency(),
-                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    membrane_normal: convert_axis_option(params.membrane_normal()),
                     ..Default::default()
                 }),
 
@@ -110,7 +107,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         radius: params.radius(),
                     },
                     frequency: params.frequency(),
-                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    membrane_normal: convert_axis_option(params.membrane_normal()),
                     ..Default::default()
                 }),
 
@@ -120,7 +117,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         methyls: params.methyls().clone(),
                     },
                     frequency: params.frequency(),
-                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    membrane_normal: convert_axis_option(params.membrane_normal()),
                     ..Default::default()
                 }),
 
@@ -499,7 +496,7 @@ impl GuiAnalysis {
                             ] {
                                 ui.selectable_value(
                                     &mut self.leaflet_classification_method,
-                                    variant.clone(),
+                                    variant,
                                     format!("{}", variant),
                                 );
                             }

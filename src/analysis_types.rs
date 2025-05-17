@@ -9,6 +9,7 @@ use crate::GuiAnalysis;
 
 /// Type of analysis to perform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum AnalysisType {
     #[default]
     AAOrder,

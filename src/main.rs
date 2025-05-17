@@ -54,6 +54,7 @@ fn main() -> eframe::Result {
 
 /// Structure handling the entire application.
 #[derive(Debug, Default)]
+#[allow(clippy::type_complexity)]
 pub(crate) struct GuiOrderApp {
     analysis: GuiAnalysis,
     windows: Windows,
@@ -156,7 +157,7 @@ impl eframe::App for GuiOrderApp {
                         let hint = if self.analysis.other_params.n_threads >= 2 {
                             format!("Perform the analysis using {} threads.", self.analysis.other_params.n_threads)
                         } else {
-                            format!("Perform the analysis using 1 thread.")
+                            "Perform the analysis using 1 thread.".to_string()
                         };
 
                         if GuiAnalysis::smart_button(
@@ -224,10 +225,10 @@ struct OutputFiles {
 impl From<&gorder::input::Analysis> for OutputFiles {
     fn from(value: &gorder::input::Analysis) -> Self {
         Self {
-            output_yaml: value.output_yaml().clone().unwrap_or(String::new()),
-            output_csv: value.output_csv().clone().unwrap_or(String::new()),
-            output_tab: value.output_tab().clone().unwrap_or(String::new()),
-            output_xvg: value.output_xvg().clone().unwrap_or(String::new()),
+            output_yaml: value.output_yaml().clone().unwrap_or_default(),
+            output_csv: value.output_csv().clone().unwrap_or_default(),
+            output_tab: value.output_tab().clone().unwrap_or_default(),
+            output_xvg: value.output_xvg().clone().unwrap_or_default(),
         }
     }
 }
@@ -244,11 +245,10 @@ impl GuiOrderApp {
                     })
                     .clicked()
                 {
-                    if let Some(path) = rfd::FileDialog::new().set_directory(".").pick_file() {
-                        Some(path.display().to_string())
-                    } else {
-                        None
-                    }
+                    rfd::FileDialog::new()
+                        .set_directory(".")
+                        .pick_file()
+                        .map(|path| path.display().to_string())
                 } else {
                     None
                 };
@@ -347,13 +347,12 @@ impl GuiOrderApp {
         match serde_yaml::to_writer(&mut writer, &converted) {
             Err(e) => {
                 self.open_error_window(Box::from(e));
-                return;
             }
             Ok(_) => self.open_success_window(&format!(
                 "Successfully exported analysis options into a configuration YAML file '{}'.",
                 output.to_str().unwrap()
             )),
-        };
+        }
     }
 
     /// Display the result of the analysis.

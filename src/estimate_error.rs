@@ -35,7 +35,7 @@ impl From<Option<gorder::input::EstimateError>> for EstimateErrorParams {
             Some(x) => Self {
                 estimate_error: true,
                 n_blocks: x.n_blocks(),
-                output_convergence: match x.output_convergence().clone() {
+                output_convergence: match x.output_convergence() {
                     None => String::new(),
                     Some(x) => x.to_string(),
                 },

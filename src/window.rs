@@ -78,7 +78,7 @@ impl Message {
             .chars()
             .fold((String::new(), 1), |(mut acc, mut count), c| {
                 if c == '\n' {
-                    acc.push_str(&format!("\n | "));
+                    acc.push_str("\n | ");
                     count = 1;
                 } else {
                     if count % n == 0 {
@@ -126,7 +126,7 @@ impl Windows {
         let mut windows_to_close = vec![];
         for (id, window) in self.windows.iter_mut() {
             if !window.open {
-                windows_to_close.push(id.clone());
+                windows_to_close.push(*id);
                 continue;
             }
 

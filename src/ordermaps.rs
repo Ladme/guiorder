@@ -104,9 +104,9 @@ impl From<Option<gorder::input::OrderMap>> for OrderMapsParams {
                     Some(gorder::input::Plane::YZ) => Some(Plane::YZ),
                 },
                 bin_size: map.bin_size(),
-                dimensions: [map.dim()[0].clone().into(), map.dim()[1].clone().into()],
-                x_manual: map.dim()[0].clone().into(),
-                y_manual: map.dim()[1].clone().into(),
+                dimensions: [map.dim()[0].into(), map.dim()[1].into()],
+                x_manual: map.dim()[0].into(),
+                y_manual: map.dim()[1].into(),
                 min_samples: map.min_samples(),
             },
         }
@@ -405,10 +405,10 @@ mod tests {
 
     #[test]
     fn convert_ordermaps_params() {
-        let params = OrderMapsParams::try_from(None).unwrap();
+        let params = OrderMapsParams::from(None);
         assert!(!params.calculate_maps);
 
-        let params = OrderMapsParams::try_from(Some(
+        let params = OrderMapsParams::from(Some(
             gorder::input::OrderMap::builder()
                 .bin_size([0.05, 0.2])
                 .dim([
@@ -420,8 +420,7 @@ mod tests {
                 .output_directory("ordermaps")
                 .build()
                 .unwrap(),
-        ))
-        .unwrap();
+        ));
 
         assert!(params.calculate_maps);
         assert_relative_eq!(params.bin_size[0], 0.05);

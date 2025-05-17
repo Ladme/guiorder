@@ -38,14 +38,12 @@ fn format_with_commas<T: std::fmt::Display>(num: T) -> String {
     let decimal = if parts.len() > 1 { parts[1] } else { "" };
 
     let mut result = String::new();
-    let mut count = 0;
 
-    for c in integer.chars().rev() {
+    for (count, c) in integer.chars().rev().enumerate() {
         if count != 0 && count % 3 == 0 {
             result.push(' ');
         }
         result.push(c);
-        count += 1;
     }
 
     let formatted_integer = result.chars().rev().collect::<String>();
@@ -91,11 +89,8 @@ impl GuiAnalysis {
                 );
 
                 // makes it possible to decrease from infinity
-                if self.frame_selection_params.end.is_infinite() {
-                    if response.dragged() {
-                        self.frame_selection_params.end =
-                            self.frame_selection_params.begin + 100_000.0;
-                    }
+                if self.frame_selection_params.end.is_infinite() && response.dragged() {
+                    self.frame_selection_params.end = self.frame_selection_params.begin + 100_000.0;
                 }
 
                 Self::label_with_hint(ui, "   Step: ", "Read every Nth frame.");

@@ -13,8 +13,8 @@ impl TryFrom<Analysis> for GuiAnalysis {
         Ok(Self {
             structure: value.structure().clone(),
             trajectory: value.trajectory().clone(),
-            ndx: value.index().clone().unwrap_or(String::new()),
-            bonds: value.bonds().clone().unwrap_or(String::new()),
+            ndx: value.index().clone().unwrap_or_default(),
+            bonds: value.bonds().clone().unwrap_or_default(),
             output: (&value).into(),
             analysis_type: value.analysis_type().clone().into(),
             analysis_type_params: value.analysis_type().clone().into(),
