@@ -324,3 +324,62 @@ impl GuiAnalysis {
                 && self.ordermaps_params.bin_size[1] > 0.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_relative_eq;
+
+    use super::*;
+
+    #[test]
+    fn convert_grid_span() {
+        assert_eq!(
+            OrderMapDimension::from(gorder::input::GridSpan::Auto),
+            OrderMapDimension::Auto
+        );
+        assert_eq!(
+            OrderMapDimension::from(gorder::input::GridSpan::manual(2.0, 5.0).unwrap()),
+            OrderMapDimension::Manual
+        );
+    }
+
+    #[test]
+    fn convert_manual_dimensions() {
+        let params = ManualDimensions::from(gorder::input::GridSpan::manual(2.0, 5.0).unwrap());
+
+        assert_relative_eq!(params.start, 2.0);
+        assert_relative_eq!(params.end, 5.0);
+    }
+
+    #[test]
+    fn convert_ordermaps_params() {
+        let params = OrderMapsParams::try_from(None).unwrap();
+        assert!(!params.calculate_maps);
+
+        let params = OrderMapsParams::try_from(Some(
+            gorder::input::OrderMap::builder()
+                .bin_size([0.05, 0.2])
+                .dim([
+                    gorder::input::GridSpan::Auto,
+                    gorder::input::GridSpan::manual(-3.0, 10.0).unwrap(),
+                ])
+                .min_samples(100)
+                .plane(gorder::input::Plane::XZ)
+                .output_directory("ordermaps")
+                .build()
+                .unwrap(),
+        ))
+        .unwrap();
+
+        assert!(params.calculate_maps);
+        assert_relative_eq!(params.bin_size[0], 0.05);
+        assert_relative_eq!(params.bin_size[1], 0.2);
+        assert_eq!(params.dimensions[0], OrderMapDimension::Auto);
+        assert_eq!(params.dimensions[1], OrderMapDimension::Manual);
+        assert_relative_eq!(params.y_manual.start, -3.0);
+        assert_relative_eq!(params.y_manual.end, 10.0);
+        assert_eq!(params.min_samples, 100);
+        assert_eq!(params.plane, Some(Plane::XZ));
+        assert_eq!(params.output_directory, String::from("ordermaps"));
+    }
+}

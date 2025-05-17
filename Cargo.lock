@@ -1776,6 +1776,7 @@ dependencies = [
 name = "guiorder"
 version = "0.1.0"
 dependencies = [
+ "approx",
  "colored 3.0.0",
  "eframe",
  "gorder",

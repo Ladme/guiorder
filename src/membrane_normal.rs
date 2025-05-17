@@ -129,3 +129,22 @@ impl GuiAnalysis {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_relative_eq;
+    use gorder::input::DynamicNormal;
+
+    use super::*;
+
+    #[test]
+    fn convert_dynamic_normal_params() {
+        let params = DynamicNormalParams::try_from(gorder::input::MembraneNormal::Dynamic(
+            DynamicNormal::new("name P", 2.5).unwrap(),
+        ))
+        .unwrap();
+
+        assert_eq!(params.heads, String::from("name P"));
+        assert_relative_eq!(params.radius, 2.5);
+    }
+}

@@ -51,7 +51,7 @@ impl GuiAnalysis {
                     "Minimum samples:   ",
                     "Minimum number of samples collected for each bond required to calculate order parameter for it.",
                 );
-    
+
                 ui.add(
                     DragValue::new(&mut self.other_params.min_samples)
                         .speed(5)
@@ -65,7 +65,7 @@ impl GuiAnalysis {
                     "Number of threads: ",
                     "Number of threads used to perform the analysis.",
                 );
-    
+
                 ui.add(
                     DragValue::new(&mut self.other_params.n_threads)
                         .speed(0.05)
@@ -77,9 +77,9 @@ impl GuiAnalysis {
                 Self::label_with_hint(
                     ui,
                     "Handle PBC: ",
-                    "Check this box if you want the program to automatically handle periodic boundary conditions.",
+                    "Check the box if you want the program to automatically handle periodic boundary conditions.",
                 );
-                
+
                 ui.checkbox(&mut self.other_params.handle_pbc, "");
 
                 if self.other_params.handle_pbc {
@@ -94,7 +94,7 @@ impl GuiAnalysis {
                             .color(Color32::from_rgb(200, 150, 0)),
                     );
                 }
-                
+
             });
 
             ui.horizontal(|ui| {
@@ -103,7 +103,7 @@ impl GuiAnalysis {
                     "Overwrite:  ",
                     "Check the box if you want the output files to overwrite existing files with the same names instead of backing up the old files.",
                 );
-    
+
                 ui.checkbox(&mut self.other_params.overwrite, "");
             });
 
@@ -113,11 +113,39 @@ impl GuiAnalysis {
                     "Silent:     ",
                     "Check the box if you want no information about the progress of the analysis to be reported.",
                 );
-    
+
                 ui.checkbox(&mut self.other_params.silent, "");
             });
-
-            
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn convert_other_options() {
+        let analysis = gorder::input::Analysis::builder()
+            .structure("tests/files/pcpepg.tpr")
+            .trajectory("tests/files/pcpepg.xtc")
+            .analysis_type(gorder::input::AnalysisType::aaorder(
+                "@membrane and element name carbon",
+                "@membrane and element name hydrogen",
+            ))
+            .min_samples(10)
+            .overwrite()
+            .silent()
+            .handle_pbc(false)
+            .n_threads(8)
+            .build()
+            .unwrap();
+
+        let params = OtherParams::from(&analysis);
+        assert_eq!(params.min_samples, 10);
+        assert!(!params.handle_pbc);
+        assert!(params.silent);
+        assert!(params.overwrite);
+        assert_eq!(params.n_threads, 8);
     }
 }

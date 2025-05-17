@@ -369,3 +369,55 @@ impl GuiAnalysis {
             .join("\n")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use gorder::input::DynamicNormal;
+
+    use super::*;
+
+    #[test]
+    fn convert_axis() {
+        assert_eq!(
+            MembraneNormal::from(gorder::input::Axis::X),
+            MembraneNormal::X
+        );
+
+        assert_eq!(
+            MembraneNormal::from(gorder::input::Axis::Y),
+            MembraneNormal::Y
+        );
+
+        assert_eq!(
+            MembraneNormal::from(gorder::input::Axis::Z),
+            MembraneNormal::Z
+        );
+    }
+
+    #[test]
+    fn convert_normal() {
+        assert_eq!(
+            MembraneNormal::try_from(gorder::input::MembraneNormal::Static(
+                gorder::input::Axis::Z
+            ))
+            .unwrap(),
+            MembraneNormal::Z
+        );
+
+        assert_eq!(
+            MembraneNormal::try_from(gorder::input::MembraneNormal::Dynamic(
+                DynamicNormal::new("name P", 2.0).unwrap()
+            ))
+            .unwrap(),
+            MembraneNormal::Dynamic
+        );
+
+        assert_eq!(
+            MembraneNormal::try_from(gorder::input::MembraneNormal::FromFile(String::from(
+                "normals.yaml"
+            )))
+            .unwrap(),
+            MembraneNormal::FromFile,
+        );
+    }
+}

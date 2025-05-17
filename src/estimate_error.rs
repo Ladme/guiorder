@@ -84,3 +84,26 @@ impl GuiAnalysis {
         });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn convert_estimate_error() {
+        let converted = EstimateErrorParams::from(Some(
+            gorder::input::EstimateError::new(Some(10), Some("convergence.yaml")).unwrap(),
+        ));
+
+        assert!(converted.estimate_error);
+        assert_eq!(converted.n_blocks, 10);
+        assert_eq!(
+            converted.output_convergence,
+            String::from("convergence.yaml")
+        );
+
+        let converted = EstimateErrorParams::from(None);
+
+        assert!(!converted.estimate_error);
+    }
+}

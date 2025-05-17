@@ -28,13 +28,25 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
     fn try_from(value: Option<gorder::input::LeafletClassification>) -> Result<Self, Self::Error> {
         if let Some(leaflets) = value {
             match leaflets {
-                gorder::input::LeafletClassification::Global(_) => Ok(LeafletClassification::Global),
+                gorder::input::LeafletClassification::Global(_) => {
+                    Ok(LeafletClassification::Global)
+                }
                 gorder::input::LeafletClassification::Local(_) => Ok(LeafletClassification::Local),
-                gorder::input::LeafletClassification::Individual(_) => Ok(LeafletClassification::Individual),
-                gorder::input::LeafletClassification::Clustering(_) => Ok(LeafletClassification::Clustering),
-                gorder::input::LeafletClassification::FromFile(_) => Ok(LeafletClassification::FromFile),
-                gorder::input::LeafletClassification::FromNdx(_) => Ok(LeafletClassification::FromNdx),
-                gorder::input::LeafletClassification::FromMap(_) => Err(ConversionError::FromMapLeaflets),
+                gorder::input::LeafletClassification::Individual(_) => {
+                    Ok(LeafletClassification::Individual)
+                }
+                gorder::input::LeafletClassification::Clustering(_) => {
+                    Ok(LeafletClassification::Clustering)
+                }
+                gorder::input::LeafletClassification::FromFile(_) => {
+                    Ok(LeafletClassification::FromFile)
+                }
+                gorder::input::LeafletClassification::FromNdx(_) => {
+                    Ok(LeafletClassification::FromNdx)
+                }
+                gorder::input::LeafletClassification::FromMap(_) => {
+                    Err(ConversionError::FromMapLeaflets)
+                }
             }
         } else {
             Ok(LeafletClassification::None)
@@ -72,7 +84,7 @@ pub(crate) struct LeafletClassificationParams {
 fn convert_axis_option(axis: Option<Axis>) -> Option<MembraneNormal> {
     match axis {
         None => None,
-        Some(x) => Some(x.into())
+        Some(x) => Some(x.into()),
     }
 }
 
@@ -81,75 +93,65 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
     fn try_from(value: Option<gorder::input::LeafletClassification>) -> Result<Self, Self::Error> {
         if let Some(leaflets) = value {
             match leaflets {
-                gorder::input::LeafletClassification::Global(params) => {
-                    Ok(Self {
-                        global_params: LeafletGlobalParams {
-                            membrane: params.membrane().clone(),
-                            heads: params.heads().clone(),
-                        },
-                        frequency: params.frequency(),
-                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
-                        ..Default::default()
-                    })
-                }
+                gorder::input::LeafletClassification::Global(params) => Ok(Self {
+                    global_params: LeafletGlobalParams {
+                        membrane: params.membrane().clone(),
+                        heads: params.heads().clone(),
+                    },
+                    frequency: params.frequency(),
+                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    ..Default::default()
+                }),
 
-                gorder::input::LeafletClassification::Local(params) => {
-                    Ok(Self {
-                        local_params: LeafletLocalParams {
-                            membrane: params.membrane().clone(),
-                            heads: params.heads().clone(),
-                            radius: params.radius(),
-                        },
-                        frequency: params.frequency(),
-                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
-                        ..Default::default()
-                    })
-                }
+                gorder::input::LeafletClassification::Local(params) => Ok(Self {
+                    local_params: LeafletLocalParams {
+                        membrane: params.membrane().clone(),
+                        heads: params.heads().clone(),
+                        radius: params.radius(),
+                    },
+                    frequency: params.frequency(),
+                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    ..Default::default()
+                }),
 
-                gorder::input::LeafletClassification::Individual(params) => {
-                    Ok(Self {
-                        individual_params: LeafletIndividualParams {
-                            heads: params.heads().clone(),
-                            methyls: params.methyls().clone(),
-                        },
-                        frequency: params.frequency(),
-                        membrane_normal: convert_axis_option(params.membrane_normal().clone()),
-                        ..Default::default()
-                    })
-                }
+                gorder::input::LeafletClassification::Individual(params) => Ok(Self {
+                    individual_params: LeafletIndividualParams {
+                        heads: params.heads().clone(),
+                        methyls: params.methyls().clone(),
+                    },
+                    frequency: params.frequency(),
+                    membrane_normal: convert_axis_option(params.membrane_normal().clone()),
+                    ..Default::default()
+                }),
 
-                gorder::input::LeafletClassification::Clustering(params) => {
-                    Ok(Self {
-                        clustering_params: LeafletClusteringParams {
-                            heads: params.heads().clone(),
-                        },
-                        frequency: params.frequency(),
-                        ..Default::default()
-                    })
-                } 
+                gorder::input::LeafletClassification::Clustering(params) => Ok(Self {
+                    clustering_params: LeafletClusteringParams {
+                        heads: params.heads().clone(),
+                    },
+                    frequency: params.frequency(),
+                    ..Default::default()
+                }),
 
-                gorder::input::LeafletClassification::FromFile(params) => {
-                    Ok(Self {
-                        from_file_params: LeafletFromFileParams {
-                            file: params.file().clone()
-                        },
-                        frequency: params.frequency(),
-                        ..Default::default()
-                    })
+                gorder::input::LeafletClassification::FromFile(params) => Ok(Self {
+                    from_file_params: LeafletFromFileParams {
+                        file: params.file().clone(),
+                    },
+                    frequency: params.frequency(),
+                    ..Default::default()
+                }),
+                gorder::input::LeafletClassification::FromNdx(params) => Ok(Self {
+                    from_ndx_params: LeafletFromNdxParams {
+                        ndx: params.ndx().clone(),
+                        heads: params.heads().clone(),
+                        upper_leaflet: params.upper_leaflet().clone(),
+                        lower_leaflet: params.lower_leaflet().clone(),
+                    },
+                    frequency: params.frequency(),
+                    ..Default::default()
+                }),
+                gorder::input::LeafletClassification::FromMap(_) => {
+                    Err(ConversionError::FromMapLeaflets)
                 }
-                gorder::input::LeafletClassification::FromNdx(params) => {
-                    Ok(Self {
-                        from_ndx_params: LeafletFromNdxParams {
-                            ndx: params.ndx().clone(),
-                            heads: params.heads().clone(),
-                            upper_leaflet: params.upper_leaflet().clone(),
-                            lower_leaflet: params.lower_leaflet().clone(),
-                        },
-                        frequency: params.frequency(),
-                        ..Default::default()
-                    })
-                }
-                gorder::input::LeafletClassification::FromMap(_) => Err(ConversionError::FromMapLeaflets),
             }
         } else {
             Ok(LeafletClassificationParams::default())
@@ -565,7 +567,7 @@ impl GuiAnalysis {
         ui.horizontal(|ui| {
             Self::label_with_hint(
                 ui,
-                label, 
+                label,
                 "Membrane normal used for the leaflet classification. Can be decoupled from the global membrane normal."
             );
 
@@ -628,5 +630,160 @@ impl GuiAnalysis {
             }
             _ => true,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_relative_eq;
+
+    use super::*;
+
+    #[test]
+    fn convert_classification_type() {
+        assert_eq!(
+            LeafletClassification::try_from(None).unwrap(),
+            LeafletClassification::None
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(gorder::input::LeafletClassification::global(
+                "@membrane",
+                "name P"
+            )))
+            .unwrap(),
+            LeafletClassification::Global
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(gorder::input::LeafletClassification::local(
+                "@membrane",
+                "name P",
+                2.5
+            )))
+            .unwrap(),
+            LeafletClassification::Local
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(
+                gorder::input::LeafletClassification::individual("name P", "name C218 C316",)
+            ))
+            .unwrap(),
+            LeafletClassification::Individual
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(
+                gorder::input::LeafletClassification::clustering("name P")
+            ))
+            .unwrap(),
+            LeafletClassification::Clustering
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(gorder::input::LeafletClassification::from_file(
+                "leaflets.yaml"
+            )))
+            .unwrap(),
+            LeafletClassification::FromFile
+        );
+
+        assert_eq!(
+            LeafletClassification::try_from(Some(gorder::input::LeafletClassification::from_ndx(
+                &["leaflets1.ndx", "leaflets2.ndx", "leaflets3.ndx"],
+                "name P",
+                "UpperLeaflet",
+                "LowerLeaflet"
+            )))
+            .unwrap(),
+            LeafletClassification::FromNdx
+        );
+    }
+
+    #[test]
+    fn convert_classification_params() {
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::global("@membrane", "name P"),
+        ))
+        .unwrap();
+
+        assert_eq!(params.global_params.membrane, String::from("@membrane"));
+        assert_eq!(params.global_params.heads, String::from("name P"));
+        assert_eq!(params.frequency, Frequency::every(1).unwrap());
+        assert!(params.membrane_normal.is_none());
+
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::local("@membrane", "name P", 2.5)
+                .with_frequency(Frequency::Once),
+        ))
+        .unwrap();
+
+        assert_eq!(params.local_params.membrane, String::from("@membrane"));
+        assert_eq!(params.local_params.heads, String::from("name P"));
+        assert_relative_eq!(params.local_params.radius, 2.5);
+        assert_eq!(params.frequency, Frequency::Once);
+        assert!(params.membrane_normal.is_none());
+
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::individual("name P", "name C218 C316")
+                .with_membrane_normal(Axis::Y),
+        ))
+        .unwrap();
+
+        assert_eq!(params.individual_params.heads, String::from("name P"));
+        assert_eq!(
+            params.individual_params.methyls,
+            String::from("name C218 C316")
+        );
+        assert_eq!(params.frequency, Frequency::every(1).unwrap());
+        assert_eq!(params.membrane_normal, Some(MembraneNormal::Y));
+
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::clustering("name P")
+                .with_frequency(Frequency::once()),
+        ))
+        .unwrap();
+
+        assert_eq!(params.clustering_params.heads, String::from("name P"));
+        assert_eq!(params.frequency, Frequency::once());
+
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::from_file("leaflets.yaml"),
+        ))
+        .unwrap();
+
+        assert_eq!(params.from_file_params.file, String::from("leaflets.yaml"));
+        assert_eq!(params.frequency, Frequency::every(1).unwrap());
+
+        let params = LeafletClassificationParams::try_from(Some(
+            gorder::input::LeafletClassification::from_ndx(
+                &["leaflets1.ndx", "leaflets2.ndx", "leaflets3.ndx"],
+                "name P",
+                "UpperLeaflet",
+                "LowerLeaflet",
+            )
+            .with_frequency(Frequency::every(5).unwrap()),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            params.from_ndx_params.ndx,
+            vec![
+                String::from("leaflets1.ndx"),
+                String::from("leaflets2.ndx"),
+                String::from("leaflets3.ndx")
+            ]
+        );
+        assert_eq!(params.from_ndx_params.heads, String::from("name P"));
+        assert_eq!(
+            params.from_ndx_params.upper_leaflet,
+            String::from("UpperLeaflet")
+        );
+        assert_eq!(
+            params.from_ndx_params.lower_leaflet,
+            String::from("LowerLeaflet")
+        );
+        assert_eq!(params.frequency, Frequency::every(5).unwrap());
     }
 }

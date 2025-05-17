@@ -179,3 +179,63 @@ impl GuiAnalysis {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn convert_analysis_type() {
+        assert_eq!(
+            AnalysisType::from(gorder::input::AnalysisType::aaorder(
+                "element name carbon",
+                "element name hydrogen"
+            )),
+            AnalysisType::AAOrder,
+        );
+
+        assert_eq!(
+            AnalysisType::from(gorder::input::AnalysisType::cgorder("@membrane")),
+            AnalysisType::CGOrder,
+        );
+
+        assert_eq!(
+            AnalysisType::from(gorder::input::AnalysisType::uaorder(
+                Some("name C211 C212"),
+                Some("name C29 C210"),
+                None
+            )),
+            AnalysisType::UAOrder,
+        )
+    }
+
+    #[test]
+    fn convert_analysis_params() {
+        let params = AnalysisTypeParams::from(gorder::input::AnalysisType::aaorder(
+            "element name carbon",
+            "element name hydrogen",
+        ));
+
+        assert_eq!(
+            params.aa_params.heavy_atoms,
+            String::from("element name carbon")
+        );
+        assert_eq!(
+            params.aa_params.hydrogens,
+            String::from("element name hydrogen")
+        );
+
+        let params = AnalysisTypeParams::from(gorder::input::AnalysisType::cgorder("@membrane"));
+        assert_eq!(params.cg_params.beads, String::from("@membrane"));
+
+        let params = AnalysisTypeParams::from(gorder::input::AnalysisType::uaorder(
+            Some("name C211 C212"),
+            Some("name C29 C210"),
+            Some("element symbol H"),
+        ));
+
+        assert_eq!(params.ua_params.saturated, String::from("name C211 C212"));
+        assert_eq!(params.ua_params.unsaturated, String::from("name C29 C210"));
+        assert_eq!(params.ua_params.ignore, String::from("element symbol H"));
+    }
+}

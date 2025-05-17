@@ -10,3 +10,6 @@ gorder = { git = "https://github.com/Ladme/gorder", rev = "259c530a2496fffb8bb65
 regex = "1.11.1"
 rfd = "0.15.3"
 thiserror = "2.0.12"
+
+[dev-dependencies]
+approx = "0.5.1"

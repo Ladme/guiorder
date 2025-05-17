@@ -501,3 +501,120 @@ impl GuiAnalysis {
         shape_valid && ref_selection_valid
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_relative_eq;
+
+    use super::*;
+
+    #[test]
+    fn convert_reference_type() {
+        assert_eq!(
+            GeomReferenceType::from(gorder::input::GeomReference::Point(Vector3D::new(
+                5.0, 2.5, 3.5
+            ))),
+            GeomReferenceType::Point
+        );
+
+        assert_eq!(
+            GeomReferenceType::from(gorder::input::GeomReference::Center),
+            GeomReferenceType::Center
+        );
+
+        assert_eq!(
+            GeomReferenceType::from(gorder::input::GeomReference::Selection(String::from(
+                "@protein"
+            ))),
+            GeomReferenceType::Selection
+        );
+    }
+
+    #[test]
+    fn convert_geometric_selection() {
+        assert_eq!(GeomSelection::from(None), GeomSelection::None);
+
+        assert_eq!(
+            GeomSelection::from(Some(
+                gorder::input::Geometry::cuboid(
+                    gorder::input::GeomReference::Point(Vector3D::new(5.0, 2.5, 3.5)),
+                    [-3.0, 2.0],
+                    [-2.0, 0.0],
+                    [0.0, 4.0],
+                )
+                .unwrap()
+            )),
+            GeomSelection::Cuboid
+        );
+
+        assert_eq!(
+            GeomSelection::from(Some(
+                gorder::input::Geometry::sphere(gorder::input::GeomReference::Center, 5.0).unwrap()
+            )),
+            GeomSelection::Sphere
+        );
+
+        assert_eq!(
+            GeomSelection::from(Some(
+                gorder::input::Geometry::cylinder(
+                    gorder::input::GeomReference::Selection(String::from("@protein")),
+                    2.0,
+                    [0.0, f32::INFINITY],
+                    gorder::input::Axis::Z,
+                )
+                .unwrap()
+            )),
+            GeomSelection::Cylinder
+        );
+    }
+
+    #[test]
+    fn convert_geometric_params() {
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::cuboid(
+                gorder::input::GeomReference::Point(Vector3D::new(5.0, 2.5, 3.5)),
+                [-3.0, 2.0],
+                [-2.5, f32::INFINITY],
+                [0.0, 4.35],
+            )
+            .unwrap(),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Point);
+        assert_relative_eq!(params.ref_point.x, 5.0);
+        assert_relative_eq!(params.ref_point.y, 2.5);
+        assert_relative_eq!(params.ref_point.z, 3.5);
+
+        assert_relative_eq!(params.cuboid.minx, -3.0);
+        assert_relative_eq!(params.cuboid.maxx, 2.0);
+        assert_relative_eq!(params.cuboid.miny, -2.5);
+        assert!(params.cuboid.maxy.is_infinite());
+        assert_relative_eq!(params.cuboid.minz, 0.0);
+        assert_relative_eq!(params.cuboid.maxz, 4.35);
+
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::sphere(gorder::input::GeomReference::Center, 5.0).unwrap(),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Center);
+        assert_relative_eq!(params.sphere.radius, 5.0);
+
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::cylinder(
+                gorder::input::GeomReference::Selection(String::from("@protein")),
+                2.0,
+                [-1.0, f32::INFINITY],
+                gorder::input::Axis::Z,
+            )
+            .unwrap(),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Selection);
+        assert_eq!(params.ref_selection, String::from("@protein"));
+
+        assert_relative_eq!(params.cylinder.radius, 2.0);
+        assert_relative_eq!(params.cylinder.start, -1.0);
+        assert!(params.cylinder.end.is_infinite());
+        assert_eq!(params.cylinder.orientation, Axis::Z);
+    }
+}
