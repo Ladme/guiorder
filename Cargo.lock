@@ -1683,8 +1683,8 @@ dependencies = [
 
 [[package]]
 name = "gorder"
-version = "0.7.1"
-source = "git+https://github.com/Ladme/gorder?branch=v0.7.2#36e120fe49999015e43cd4b6a2959dbf4199e6ff"
+version = "0.7.2"
+source = "git+https://github.com/Ladme/gorder?rev=259c530a2496fffb8bb657a553096ed59c6936dd#259c530a2496fffb8bb657a553096ed59c6936dd"
 dependencies = [
  "backitup",
  "clap",
