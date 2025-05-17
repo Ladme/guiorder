@@ -1784,6 +1784,7 @@ dependencies = [
  "log",
  "regex",
  "rfd",
+ "serde_yaml",
  "thiserror 2.0.12",
 ]
 

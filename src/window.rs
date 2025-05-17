@@ -24,6 +24,7 @@ struct Window {
 enum Message {
     Error(String),
     Warning(String),
+    Success(String),
     Info(String),
 }
 
@@ -32,23 +33,24 @@ impl Message {
         let color = match self {
             Self::Error(_) => egui::Color32::from_rgba_premultiplied(150, 0, 0, 100),
             Self::Warning(_) => egui::Color32::from_rgba_premultiplied(150, 120, 0, 100),
+            Self::Success(_) => egui::Color32::from_rgba_premultiplied(0, 150, 0, 100),
             Self::Info(_) => egui::Color32::from_rgba_premultiplied(150, 150, 150, 100),
         };
 
         let text = match self {
-            Self::Error(x) | Self::Warning(x) | Self::Info(x) => x,
+            Self::Error(x) | Self::Warning(x) | Self::Info(x) | Self::Success(x) => x,
         };
 
         let label = match self {
-            Self::Error(_) => "error:",
+            Self::Error(_) => "error: ",
             Self::Warning(_) => "warning: ",
-            Self::Info(_) => "",
+            Self::Info(_) | Self::Success(_) => "",
         };
 
         ui.label(
             RichText::new(Message::insert_newlines(
                 &format!(
-                    "{} {}",
+                    "{}{}",
                     label,
                     Message::remove_error_labels(&Message::strip_ansi_codes(text))
                 ),
@@ -146,6 +148,19 @@ impl GuiOrderApp {
             Window {
                 title: String::from("Error!"),
                 messages: vec![Message::Error(error.to_string())],
+                open: true,
+            },
+        );
+
+        self.windows.total_spawned += 1;
+    }
+
+    pub(super) fn open_success_window(&mut self, message: &str) {
+        self.windows.windows.insert(
+            Id::new(self.windows.total_spawned),
+            Window {
+                title: String::from("Success!"),
+                messages: vec![Message::Success(message.to_string())],
                 open: true,
             },
         );

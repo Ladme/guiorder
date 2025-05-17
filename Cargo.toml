@@ -11,6 +11,7 @@ gorder = { git = "https://github.com/Ladme/gorder", rev = "0e359f8" }
 log = "0.4.27"
 regex = "1.11.1"
 rfd = "0.15.3"
+serde_yaml = "0.9.34"
 thiserror = "2.0.12"
 
 [dev-dependencies]
