@@ -423,4 +423,11 @@ mod tests {
             MembraneNormal::FromFile,
         );
     }
+
+    #[test]
+    fn convert_to_axis() {
+        assert_eq!(Axis::from(MembraneNormal::X), Axis::X);
+        assert_eq!(Axis::from(MembraneNormal::Y), Axis::Y);
+        assert_eq!(Axis::from(MembraneNormal::Z), Axis::Z);
+    }
 }

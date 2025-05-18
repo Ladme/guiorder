@@ -109,7 +109,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_estimate_error() {
+    fn gorder_to_guiorder_estimate_error() {
         let converted = EstimateErrorParams::from(Some(
             gorder::input::EstimateError::new(Some(10), Some("convergence.yaml")).unwrap(),
         ));
@@ -124,5 +124,46 @@ mod tests {
         let converted = EstimateErrorParams::from(None);
 
         assert!(!converted.estimate_error);
+    }
+
+    #[test]
+    fn guiorder_to_gorder_estimate_error() {
+        let params = EstimateErrorParams {
+            estimate_error: false,
+            n_blocks: 12,
+            output_convergence: String::new(),
+        };
+
+        let converted = Option::<gorder::input::EstimateError>::try_from(&params).unwrap();
+        assert!(converted.is_none());
+
+        let params = EstimateErrorParams {
+            estimate_error: true,
+            n_blocks: 12,
+            output_convergence: String::new(),
+        };
+
+        let converted = Option::<gorder::input::EstimateError>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(converted.n_blocks(), 12);
+        assert!(converted.output_convergence().is_none());
+
+        let params = EstimateErrorParams {
+            estimate_error: true,
+            n_blocks: 12,
+            output_convergence: String::from("convergence.xvg"),
+        };
+
+        let converted = Option::<gorder::input::EstimateError>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(converted.n_blocks(), 12);
+        assert_eq!(
+            converted.output_convergence().unwrap(),
+            String::from("convergence.xvg")
+        );
     }
 }

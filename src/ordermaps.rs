@@ -384,7 +384,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_grid_span() {
+    fn gorder_to_guiorder_grid_span() {
         assert_eq!(
             OrderMapDimension::from(gorder::input::GridSpan::Auto),
             OrderMapDimension::Auto
@@ -396,7 +396,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_manual_dimensions() {
+    fn gorder_to_guiorder_manual_dimensions() {
         let params = ManualDimensions::from(gorder::input::GridSpan::manual(2.0, 5.0).unwrap());
 
         assert_relative_eq!(params.start, 2.0);
@@ -404,7 +404,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_ordermaps_params() {
+    fn gorder_to_guiorder_ordermaps_params() {
         let params = OrderMapsParams::from(None);
         assert!(!params.calculate_maps);
 
@@ -432,5 +432,62 @@ mod tests {
         assert_eq!(params.min_samples, 100);
         assert_eq!(params.plane, Some(Plane::XZ));
         assert_eq!(params.output_directory, String::from("ordermaps"));
+    }
+
+    #[test]
+    fn guiorder_to_gorder_ordermaps_params_no_maps() {
+        let params = OrderMapsParams {
+            calculate_maps: false,
+            ..Default::default()
+        };
+
+        assert!(Option::<gorder::input::OrderMap>::try_from(&params)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn guiorder_to_gorder_ordermaps_params() {
+        let params = OrderMapsParams {
+            calculate_maps: true,
+            output_directory: String::from("ordermaps"),
+            plane: Some(Plane::XZ),
+            bin_size: [0.2, 0.05],
+            dimensions: [OrderMapDimension::Manual, OrderMapDimension::Auto],
+            x_manual: ManualDimensions {
+                start: f32::NEG_INFINITY,
+                end: 3.5,
+            },
+            y_manual: ManualDimensions::default(),
+            min_samples: 10,
+        };
+
+        let converted = Option::<gorder::input::OrderMap>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            converted.output_directory().as_ref().unwrap(),
+            &String::from("ordermaps")
+        );
+        assert!(matches!(
+            converted.plane().unwrap(),
+            gorder::input::Plane::XZ
+        ));
+        assert_relative_eq!(converted.bin_size()[0], 0.2);
+        assert_relative_eq!(converted.bin_size()[1], 0.05);
+        let [xdim, ydim] = converted.dim();
+        match xdim {
+            gorder::input::GridSpan::Manual { start, end } => {
+                assert!(start.is_infinite());
+                assert_relative_eq!(end, 3.5);
+            }
+            _ => panic!("Invalid grid span."),
+        }
+        match ydim {
+            gorder::input::GridSpan::Auto => (),
+            _ => panic!("Invalid grid span."),
+        }
+        assert_eq!(params.min_samples, 10);
     }
 }

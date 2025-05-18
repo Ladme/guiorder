@@ -161,7 +161,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_dynamic_normal_params() {
+    fn gorder_to_guiorder_dynamic_normal_params() {
         let params = DynamicNormalParams::try_from(gorder::input::MembraneNormal::Dynamic(
             DynamicNormal::new("name P", 2.5).unwrap(),
         ))
@@ -169,5 +169,86 @@ mod tests {
 
         assert_eq!(params.heads, String::from("name P"));
         assert_relative_eq!(params.radius, 2.5);
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_z() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::Z,
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::Static(axis) => {
+                assert!(matches!(axis, Axis::Z));
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_y() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::Y,
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::Static(axis) => {
+                assert!(matches!(axis, Axis::Y));
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_x() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::X,
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::Static(axis) => {
+                assert!(matches!(axis, Axis::X));
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_dynamic() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::Dynamic,
+            dynamic_normal_params: DynamicNormalParams {
+                heads: String::from("name P"),
+                radius: 1.75,
+            },
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::Dynamic(converted) => {
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert_relative_eq!(converted.radius(), 1.75);
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_from_file() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::FromFile,
+            from_file_normals: String::from("normals.yaml"),
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::FromFile(file) => {
+                assert_eq!(file, String::from("normals.yaml"));
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
     }
 }

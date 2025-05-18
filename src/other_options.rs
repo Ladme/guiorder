@@ -125,7 +125,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_other_options() {
+    fn gorder_to_guiorder_other_options() {
         let analysis = gorder::input::Analysis::builder()
             .structure("tests/files/pcpepg.tpr")
             .trajectory("tests/files/pcpepg.xtc")

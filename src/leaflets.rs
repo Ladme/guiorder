@@ -707,12 +707,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_classification_type() {
+    fn gorder_to_guiorder_no_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(None).unwrap(),
             LeafletClassification::None
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_global_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(gorder::input::LeafletClassification::global(
                 "@membrane",
@@ -721,7 +724,10 @@ mod tests {
             .unwrap(),
             LeafletClassification::Global
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_local_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(gorder::input::LeafletClassification::local(
                 "@membrane",
@@ -731,7 +737,10 @@ mod tests {
             .unwrap(),
             LeafletClassification::Local
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_individual_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(
                 gorder::input::LeafletClassification::individual("name P", "name C218 C316",)
@@ -739,7 +748,10 @@ mod tests {
             .unwrap(),
             LeafletClassification::Individual
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_clustering_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(
                 gorder::input::LeafletClassification::clustering("name P")
@@ -747,7 +759,10 @@ mod tests {
             .unwrap(),
             LeafletClassification::Clustering
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_from_file_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(gorder::input::LeafletClassification::from_file(
                 "leaflets.yaml"
@@ -755,7 +770,10 @@ mod tests {
             .unwrap(),
             LeafletClassification::FromFile
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_from_ndx_classification_type() {
         assert_eq!(
             LeafletClassification::try_from(Some(gorder::input::LeafletClassification::from_ndx(
                 &["leaflets1.ndx", "leaflets2.ndx", "leaflets3.ndx"],
@@ -769,7 +787,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_classification_params() {
+    fn gorder_to_guiorder_global_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::global("@membrane", "name P"),
         ))
@@ -779,7 +797,10 @@ mod tests {
         assert_eq!(params.global_params.heads, String::from("name P"));
         assert_eq!(params.frequency, Frequency::every(1).unwrap());
         assert!(params.membrane_normal.is_none());
+    }
 
+    #[test]
+    fn gorder_to_guiorder_local_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::local("@membrane", "name P", 2.5)
                 .with_frequency(Frequency::Once),
@@ -791,7 +812,10 @@ mod tests {
         assert_relative_eq!(params.local_params.radius, 2.5);
         assert_eq!(params.frequency, Frequency::Once);
         assert!(params.membrane_normal.is_none());
+    }
 
+    #[test]
+    fn gorder_to_guiorder_individual_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::individual("name P", "name C218 C316")
                 .with_membrane_normal(Axis::Y),
@@ -805,7 +829,10 @@ mod tests {
         );
         assert_eq!(params.frequency, Frequency::every(1).unwrap());
         assert_eq!(params.membrane_normal, Some(MembraneNormal::Y));
+    }
 
+    #[test]
+    fn gorder_to_guiorder_clustering_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::clustering("name P")
                 .with_frequency(Frequency::once()),
@@ -814,7 +841,10 @@ mod tests {
 
         assert_eq!(params.clustering_params.heads, String::from("name P"));
         assert_eq!(params.frequency, Frequency::once());
+    }
 
+    #[test]
+    fn gorder_to_guiorder_from_file_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::from_file("leaflets.yaml"),
         ))
@@ -822,7 +852,10 @@ mod tests {
 
         assert_eq!(params.from_file_params.file, String::from("leaflets.yaml"));
         assert_eq!(params.frequency, Frequency::every(1).unwrap());
+    }
 
+    #[test]
+    fn gorder_to_guiorder_from_ndx_params() {
         let params = LeafletClassificationParams::try_from(Some(
             gorder::input::LeafletClassification::from_ndx(
                 &["leaflets1.ndx", "leaflets2.ndx", "leaflets3.ndx"],
@@ -852,5 +885,222 @@ mod tests {
             String::from("LowerLeaflet")
         );
         assert_eq!(params.frequency, Frequency::every(5).unwrap());
+    }
+
+    #[test]
+    fn guiorder_to_gorder_no_classification() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::None,
+            ..Default::default()
+        };
+
+        let converted = Option::<gorder::input::LeafletClassification>::try_from(&params).unwrap();
+        assert!(converted.is_none());
+    }
+
+    #[test]
+    fn guiorder_to_gorder_global() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::Global,
+            leaflet_classification_params: LeafletClassificationParams {
+                global_params: LeafletGlobalParams {
+                    membrane: String::from("@membrane"),
+                    heads: String::from("name P"),
+                },
+                frequency: Frequency::every(2).unwrap(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::Global(converted) => {
+                match converted.frequency() {
+                    Frequency::Every(n) => assert_eq!(n.get(), 2),
+                    _ => panic!("Invalid frequency."),
+                }
+
+                assert_eq!(converted.membrane(), &String::from("@membrane"));
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert!(converted.membrane_normal().is_none());
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_local() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::Local,
+            leaflet_classification_params: LeafletClassificationParams {
+                local_params: LeafletLocalParams {
+                    membrane: String::from("@membrane"),
+                    heads: String::from("name P"),
+                    radius: 0.751,
+                },
+                membrane_normal: Some(MembraneNormal::Z),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::Local(converted) => {
+                match converted.frequency() {
+                    Frequency::Every(n) => assert_eq!(n.get(), 1),
+                    _ => panic!("Invalid frequency."),
+                }
+
+                assert_eq!(converted.membrane(), &String::from("@membrane"));
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert_eq!(converted.radius(), 0.751);
+                assert!(matches!(converted.membrane_normal(), Some(Axis::Z)));
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_individual() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::Individual,
+            leaflet_classification_params: LeafletClassificationParams {
+                individual_params: LeafletIndividualParams {
+                    heads: String::from("name P"),
+                    methyls: String::from("name C218 C316"),
+                },
+                frequency: Frequency::once(),
+                membrane_normal: Some(MembraneNormal::X),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::Individual(converted) => {
+                assert!(matches!(converted.frequency(), Frequency::Once));
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert_eq!(converted.methyls(), &String::from("name C218 C316"));
+                assert!(matches!(converted.membrane_normal(), Some(Axis::X)));
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_clustering() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::Clustering,
+            leaflet_classification_params: LeafletClassificationParams {
+                clustering_params: LeafletClusteringParams {
+                    heads: String::from("name P"),
+                },
+                frequency: Frequency::once(),
+                membrane_normal: Some(MembraneNormal::Z),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::Clustering(converted) => {
+                assert!(matches!(converted.frequency(), Frequency::Once));
+                assert_eq!(converted.heads(), &String::from("name P"));
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_from_file() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::FromFile,
+            leaflet_classification_params: LeafletClassificationParams {
+                from_file_params: LeafletFromFileParams {
+                    file: String::from("leaflets.yaml"),
+                },
+                frequency: Frequency::every(10).unwrap(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::FromFile(converted) => {
+                match converted.frequency() {
+                    Frequency::Every(n) => assert_eq!(n.get(), 10),
+                    _ => panic!("Invalid frequency."),
+                }
+                assert_eq!(converted.file(), &String::from("leaflets.yaml"));
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_from_ndx() {
+        let params = GuiAnalysis {
+            leaflet_classification_method: LeafletClassification::FromNdx,
+            leaflet_classification_params: LeafletClassificationParams {
+                from_ndx_params: LeafletFromNdxParams {
+                    ndx: vec![
+                        String::from("index1.ndx"),
+                        String::from("index2.ndx"),
+                        String::from("index3.ndx"),
+                    ],
+                    heads: String::from("name P"),
+                    upper_leaflet: String::from("UpperLeaflet"),
+                    lower_leaflet: String::from("LowerLeaflet"),
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let leaflets = Option::<gorder::input::LeafletClassification>::try_from(&params)
+            .unwrap()
+            .unwrap();
+
+        match leaflets {
+            gorder::input::LeafletClassification::FromNdx(converted) => {
+                match converted.frequency() {
+                    Frequency::Every(n) => assert_eq!(n.get(), 1),
+                    _ => panic!("Invalid frequency."),
+                }
+                assert_eq!(
+                    converted.ndx(),
+                    &vec![
+                        String::from("index1.ndx"),
+                        String::from("index2.ndx"),
+                        String::from("index3.ndx")
+                    ]
+                );
+
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert_eq!(converted.upper_leaflet(), &String::from("UpperLeaflet"));
+                assert_eq!(converted.lower_leaflet(), &String::from("LowerLeaflet"));
+            }
+            _ => panic!("Invalid leaflet classification method."),
+        }
     }
 }

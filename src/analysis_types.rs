@@ -220,7 +220,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_analysis_type() {
+    fn gorder_to_guiorder_aa_type() {
         assert_eq!(
             AnalysisType::from(gorder::input::AnalysisType::aaorder(
                 "element name carbon",
@@ -228,12 +228,18 @@ mod tests {
             )),
             AnalysisType::AAOrder,
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_cg_type() {
         assert_eq!(
             AnalysisType::from(gorder::input::AnalysisType::cgorder("@membrane")),
             AnalysisType::CGOrder,
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_ua_type() {
         assert_eq!(
             AnalysisType::from(gorder::input::AnalysisType::uaorder(
                 Some("name C211 C212"),
@@ -245,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_analysis_params() {
+    fn gorder_to_guiorder_aa_params() {
         let params = AnalysisTypeParams::from(gorder::input::AnalysisType::aaorder(
             "element name carbon",
             "element name hydrogen",
@@ -259,10 +265,16 @@ mod tests {
             params.aa_params.hydrogens,
             String::from("element name hydrogen")
         );
+    }
 
+    #[test]
+    fn gorder_to_guiorder_cg_params() {
         let params = AnalysisTypeParams::from(gorder::input::AnalysisType::cgorder("@membrane"));
         assert_eq!(params.cg_params.beads, String::from("@membrane"));
+    }
 
+    #[test]
+    fn gorder_to_guiorder_ua_params() {
         let params = AnalysisTypeParams::from(gorder::input::AnalysisType::uaorder(
             Some("name C211 C212"),
             Some("name C29 C210"),
@@ -272,5 +284,114 @@ mod tests {
         assert_eq!(params.ua_params.saturated, String::from("name C211 C212"));
         assert_eq!(params.ua_params.unsaturated, String::from("name C29 C210"));
         assert_eq!(params.ua_params.ignore, String::from("element symbol H"));
+    }
+
+    #[test]
+    fn guiorder_to_gorder_aa() {
+        let params = GuiAnalysis {
+            analysis_type: AnalysisType::AAOrder,
+            analysis_type_params: AnalysisTypeParams {
+                aa_params: AAParams {
+                    heavy_atoms: String::from("element name carbon"),
+                    hydrogens: String::from("element name hydrogen"),
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let converted = gorder::input::AnalysisType::from(&params);
+        match converted {
+            gorder::input::AnalysisType::AAOrder {
+                heavy_atoms,
+                hydrogens,
+            } => {
+                assert_eq!(heavy_atoms, String::from("element name carbon"));
+                assert_eq!(hydrogens, String::from("element name hydrogen"));
+            }
+            _ => panic!("Invalid analysis type returned."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_cg() {
+        let params = GuiAnalysis {
+            analysis_type: AnalysisType::CGOrder,
+            analysis_type_params: AnalysisTypeParams {
+                cg_params: CGParams {
+                    beads: String::from("@membrane"),
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let converted = gorder::input::AnalysisType::from(&params);
+        match converted {
+            gorder::input::AnalysisType::CGOrder { beads } => {
+                assert_eq!(beads, String::from("@membrane"));
+            }
+            _ => panic!("Invalid analysis type returned."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_ua() {
+        let params = GuiAnalysis {
+            analysis_type: AnalysisType::UAOrder,
+            analysis_type_params: AnalysisTypeParams {
+                ua_params: UAParams {
+                    saturated: String::from("name C211 C212"),
+                    unsaturated: String::from("name C29 C210"),
+                    ignore: String::from("element symbol H"),
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let converted = gorder::input::AnalysisType::from(&params);
+        match converted {
+            gorder::input::AnalysisType::UAOrder {
+                saturated,
+                unsaturated,
+                ignore,
+            } => {
+                assert_eq!(saturated.unwrap(), String::from("name C211 C212"));
+                assert_eq!(unsaturated.unwrap(), String::from("name C29 C210"));
+                assert_eq!(ignore.unwrap(), String::from("element symbol H"));
+            }
+            _ => panic!("Invalid analysis type returned."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_ua_empty_selections() {
+        let params = GuiAnalysis {
+            analysis_type: AnalysisType::UAOrder,
+            analysis_type_params: AnalysisTypeParams {
+                ua_params: UAParams {
+                    saturated: String::new(),
+                    unsaturated: String::new(),
+                    ignore: String::new(),
+                },
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let converted = gorder::input::AnalysisType::from(&params);
+        match converted {
+            gorder::input::AnalysisType::UAOrder {
+                saturated,
+                unsaturated,
+                ignore,
+            } => {
+                assert!(saturated.is_none());
+                assert!(unsaturated.is_none());
+                assert!(ignore.is_none());
+            }
+            _ => panic!("Invalid analysis type returned."),
+        }
     }
 }
