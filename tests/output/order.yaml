@@ -1,0 +1,75 @@
+# Order parameters calculated with 'gorder v0.7.1' using a structure file 'tests/pcpepg.tpr' and a trajectory file 'tests/pcpepg.xtc'.
+average order:
+  total:
+    mean: -0.0646
+    error: 0.0218
+  upper:
+    mean: -0.0847
+    error: 0.0233
+  lower:
+    mean: -0.0357
+    error: 0.0261
+POPC:
+  average order:
+    total:
+      mean: -0.0646
+      error: 0.0218
+    upper:
+      mean: -0.0847
+      error: 0.0233
+    lower:
+      mean: -0.0357
+      error: 0.0261
+  order parameters:
+    POPC C210 (64):
+      total:
+        mean: -0.0354
+        error: 0.0471
+      upper:
+        mean: -0.0551
+        error: 0.0645
+      lower:
+        mean: -0.0062
+        error: 0.0352
+      bonds:
+        POPC H101 (65):
+          total:
+            mean: -0.0354
+            error: 0.0471
+          upper:
+            mean: -0.0551
+            error: 0.0645
+          lower:
+            mean: -0.0062
+            error: 0.0352
+    POPC C215 (78):
+      total:
+        mean: -0.0791
+        error: 0.0189
+      upper:
+        mean: -0.0996
+        error: 0.018
+      lower:
+        mean: -0.05
+        error: 0.0256
+      bonds:
+        POPC H15R (79):
+          total:
+            mean: -0.068
+            error: 0.0275
+          upper:
+            mean: -0.0761
+            error: 0.0294
+          lower:
+            mean: -0.0564
+            error: 0.0661
+        POPC H15S (80):
+          total:
+            mean: -0.0903
+            error: 0.0308
+          upper:
+            mean: -0.123
+            error: 0.0421
+          lower:
+            mean: -0.0435
+            error: 0.0396

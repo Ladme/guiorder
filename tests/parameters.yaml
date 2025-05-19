@@ -1,0 +1,39 @@
+structure: tests/pcpepg.tpr
+trajectory: tests/pcpepg.xtc
+index: tests/index.ndx
+type: !AAOrder
+  heavy_atoms: "resname POPC and name C210 C215"
+  hydrogens: "element name hydrogen"
+output: temporary/order.yaml
+output_tab: temporary/order.tab
+output_xvg: temporary/order.xvg
+output_csv: temporary/order.csv
+membrane_normal: x
+begin: 450500
+end: 450800
+step: 2
+min_samples: 10
+n_threads: 4
+leaflets: !Global
+  membrane: "@membrane"
+  heads: "name P"
+  frequency: !Once
+map:
+  output_directory: "temporary/ordermaps"
+  dim: 
+    - !Manual { start: 0.5, end: 10.5 }
+    - !Auto
+  min_samples: 2
+  bin_size: [0.5, 0.02]
+  plane: xy
+estimate_error:
+  n_blocks: 6
+  output_convergence: "temporary/convergence.xvg"
+geometry: !Cylinder
+  reference: !Point [4.0, 3.5, 2.5]
+  radius: 4.5
+  span: [0.0, 8.1]
+  orientation: z
+overwrite: true
+silent: true
+handle_pbc: true

@@ -84,7 +84,7 @@ impl eframe::App for GuiOrderApp {
                     });
 
                     ui.add_space(20.0);
-                    self.import_yaml(ui);
+                    self.import_yaml_button(ui);
                     ui.separator();
 
                     GuiAnalysis::specify_input_file(
@@ -234,8 +234,8 @@ impl From<&gorder::input::Analysis> for OutputFiles {
 }
 
 impl GuiOrderApp {
-    /// Import parameters from a YAML file.
-    fn import_yaml(&mut self, ui: &mut Ui) {
+    /// Create a button for importing parameters from a YAML file.
+    fn import_yaml_button(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.vertical_centered(|ui| {
                 let input_yaml = if ui
@@ -254,18 +254,23 @@ impl GuiOrderApp {
                 };
 
                 if let Some(input) = input_yaml {
-                    match gorder::input::Analysis::from_file(&input) {
-                        Err(e) => self.open_error_window(Box::from(e)),
-                        Ok(analysis) => match analysis.try_into() {
-                            Err(e) => self.open_error_window(Box::from(e)),
-                            Ok(converted) => {
-                                self.analysis = converted;
-                            }
-                        },
-                    }
+                    self.import_yaml(&input);
                 }
             });
         });
+    }
+
+    /// Import parameters from a yaml file.
+    fn import_yaml(&mut self, input: &str) {
+        match gorder::input::Analysis::from_file(input) {
+            Err(e) => self.open_error_window(Box::from(e)),
+            Ok(analysis) => match analysis.try_into() {
+                Err(e) => self.open_error_window(Box::from(e)),
+                Ok(converted) => {
+                    self.analysis = converted;
+                }
+            },
+        }
     }
 
     /// Convert the GuiAnalysis to gorder analysis structure and run the analysis.
@@ -450,5 +455,230 @@ impl GuiAnalysis {
             && self.check_membrane_normal_sanity()
             && self.check_ordermaps_sanity()
             && self.check_geometry_sanity()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{BufRead, BufReader};
+
+    use approx::assert_relative_eq;
+    use tempfile::NamedTempFile;
+
+    use super::*;
+
+    fn assert_eq_order(a: &str, b: &str, skip: usize) {
+        let (file_a, file_b) = match (File::open(a), File::open(b)) {
+            (Ok(f1), Ok(f2)) => (f1, f2),
+            _ => panic!("One or both files do not exist."),
+        };
+
+        let mut lines_a = BufReader::new(file_a).lines().skip(skip);
+        let mut lines_b = BufReader::new(file_b).lines().skip(skip);
+
+        loop {
+            match (lines_a.next(), lines_b.next()) {
+                (Some(Ok(line_a)), Some(Ok(line_b))) => assert_lines(&line_a, &line_b),
+                (None, None) => break,
+                _ => panic!("Files have different number of lines"),
+            }
+        }
+    }
+
+    fn assert_lines(line_a: &str, line_b: &str) {
+        let mut line_a_split = line_a.split_whitespace();
+        let mut line_b_split = line_b.split_whitespace();
+
+        loop {
+            match (line_a_split.next(), line_b_split.next()) {
+                (Some(item_a), Some(item_b)) => assert_items(item_a, item_b),
+                (None, None) => break,
+                _ => panic!("Lines do not match: {} vs. {}", line_a, line_b),
+            }
+        }
+    }
+
+    fn assert_items(item_a: &str, item_b: &str) {
+        match (item_a.parse::<f32>(), item_b.parse::<f32>()) {
+            (Ok(z1), Ok(z2)) if z1.is_nan() && z2.is_nan() => (),
+            (Ok(z1), Ok(z2)) => assert_relative_eq!(z1, z2, epsilon = 2e-4),
+            (Err(_), Err(_)) => assert_eq!(
+                item_a, item_b,
+                "Items do not match: {} vs {}",
+                item_a, item_b
+            ),
+            _ => panic!("Invalid or mismatched items: {} vs {}", item_a, item_b),
+        }
+    }
+
+    fn assert_eq_csv(a: &str, b: &str, skip: usize) {
+        let (file_a, file_b) = match (File::open(a), File::open(b)) {
+            (Ok(f1), Ok(f2)) => (f1, f2),
+            _ => panic!("One or both files do not exist."),
+        };
+
+        let mut lines_a = BufReader::new(file_a).lines().skip(skip);
+        let mut lines_b = BufReader::new(file_b).lines().skip(skip);
+
+        loop {
+            match (lines_a.next(), lines_b.next()) {
+                (Some(Ok(line_a)), Some(Ok(line_b))) => assert_lines_csv(&line_a, &line_b),
+                (None, None) => break,
+                _ => panic!("Files have different number of lines"),
+            }
+        }
+    }
+
+    fn assert_lines_csv(line_a: &str, line_b: &str) {
+        let mut line_a_split = line_a.split(",");
+        let mut line_b_split = line_b.split(",");
+
+        loop {
+            match (line_a_split.next(), line_b_split.next()) {
+                (Some(item_a), Some(item_b)) => assert_items(item_a, item_b),
+                (None, None) => break,
+                _ => panic!("Lines do not match: {} vs. {}", line_a, line_b),
+            }
+        }
+    }
+
+    fn assert_eq_maps(a: &str, b: &str, skip: usize) {
+        let (file_a, file_b) = match (File::open(a), File::open(b)) {
+            (Ok(f1), Ok(f2)) => (f1, f2),
+            _ => panic!("One or both files do not exist."),
+        };
+
+        let mut lines_a = BufReader::new(file_a).lines().skip(skip);
+        let mut lines_b = BufReader::new(file_b).lines().skip(skip);
+
+        loop {
+            match (lines_a.next(), lines_b.next()) {
+                (Some(Ok(line_a)), Some(Ok(line_b))) => {
+                    let is_data = line_a
+                        .split_whitespace()
+                        .next()
+                        .and_then(|s| s.parse::<f32>().ok())
+                        .is_some();
+
+                    if is_data {
+                        let p: Vec<_> = line_a.split_whitespace().collect();
+                        let q: Vec<_> = line_b.split_whitespace().collect();
+                        assert_eq!(p.len(), 3, "Data line must have 3 columns");
+                        assert_eq!(q.len(), 3, "Data line must have 3 columns");
+
+                        assert_eq!(p[0], q[0], "First columns differ");
+                        assert_eq!(p[1], q[1], "Second columns differ");
+
+                        assert_items(p[2], q[2]);
+                    } else {
+                        assert_eq!(line_a, line_b, "Non-data lines differ");
+                    }
+                }
+                (None, None) => break,
+                _ => panic!("Files have different number of lines"),
+            }
+        }
+    }
+
+    fn diff_files_ignore_first(file1: &str, file2: &str, skip: usize) -> bool {
+        let content1 = read_file_without_first_lines(file1, skip);
+        let content2 = read_file_without_first_lines(file2, skip);
+        content1 == content2
+    }
+
+    fn read_file_without_first_lines(file: &str, skip: usize) -> Vec<String> {
+        let reader = BufReader::new(File::open(file).unwrap());
+        reader
+            .lines()
+            .skip(skip)
+            .map(|line| line.unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn import_and_run() {
+        let _ = std::fs::create_dir("temporary");
+
+        let mut app = GuiOrderApp::default();
+        app.import_yaml("tests/parameters.yaml");
+        app.run_analysis();
+
+        // wait for the completion of the analysis
+        while *app.running.lock().unwrap() {}
+
+        assert_eq_order("temporary/order.yaml", "tests/output/order.yaml", 1);
+        assert_eq_order("temporary/order.tab", "tests/output/order.tab", 1);
+        assert_eq_order("temporary/order_POPC.xvg", "tests/output/order_POPC.xvg", 1);
+        assert_eq_order(
+            "temporary/convergence.xvg",
+            "tests/output/convergence.xvg",
+            1,
+        );
+        assert_eq_csv("temporary/order.csv", "tests/output/order.csv", 0);
+
+        assert_eq_maps(
+            "temporary/ordermaps/ordermap_average_full.dat",
+            "tests/output/ordermaps/ordermap_average_full.dat",
+            2,
+        );
+
+        assert_eq_maps(
+            "temporary/ordermaps/ordermap_average_lower.dat",
+            "tests/output/ordermaps/ordermap_average_lower.dat",
+            2,
+        );
+
+        assert_eq_maps(
+            "temporary/ordermaps/ordermap_average_upper.dat",
+            "tests/output/ordermaps/ordermap_average_upper.dat",
+            2,
+        );
+
+        let maps = [
+            "ordermap_average_full.dat",
+            "ordermap_POPC-C210-64--POPC-H101-65_full.dat",
+            "ordermap_POPC-C215-78_lower.dat",
+            "ordermap_POPC-C215-78--POPC-H15S-80_lower.dat",
+            "ordermap_average_lower.dat",
+            "ordermap_POPC-C210-64--POPC-H101-65_lower.dat",
+            "ordermap_POPC-C215-78--POPC-H15R-79_full.dat",
+            "ordermap_POPC-C215-78--POPC-H15S-80_upper.dat",
+            "ordermap_average_upper.dat",
+            "ordermap_POPC-C210-64--POPC-H101-65_upper.dat",
+            "ordermap_POPC-C215-78--POPC-H15R-79_lower.dat",
+            "ordermap_POPC-C215-78_upper.dat",
+            "ordermap_POPC-C210-64_full.dat",
+            "ordermap_POPC-C210-64_upper.dat",
+            "ordermap_POPC-C215-78--POPC-H15R-79_upper.dat",
+            "ordermap_POPC-C210-64_lower.dat",
+            "ordermap_POPC-C215-78_full.dat",
+            "ordermap_POPC-C215-78--POPC-H15S-80_full.dat",
+        ];
+
+        for map in maps {
+            assert_eq_maps(
+                &format!("temporary/ordermaps/POPC/{}", map),
+                &format!("tests/output/ordermaps/POPC/{}", map),
+                2,
+            )
+        }
+
+        std::fs::remove_dir_all("temporary").unwrap();
+    }
+
+    #[test]
+    fn import_and_export() {
+        let output = NamedTempFile::new().unwrap();
+        let path_to_output = output.path().to_path_buf();
+
+        let mut app = GuiOrderApp::default();
+        app.import_yaml("tests/parameters.yaml");
+        app.export_to_yaml(path_to_output.clone());
+
+        assert!(diff_files_ignore_first(
+            path_to_output.to_str().unwrap(),
+            "tests/exported.yaml",
+            1
+        ));
     }
 }

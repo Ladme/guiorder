@@ -1,0 +1,12 @@
+# Order parameters calculated with 'gorder v0.7.1' using a structure file 'tests/pcpepg.tpr' and a trajectory file 'tests/pcpepg.xtc'.
+@    title "Atomistic order parameters for molecule type POPC"
+@    xaxis label "Atom"
+@    yaxis label "-Sch"
+@    s0 legend "Full membrane"
+@    s1 legend "Upper leaflet"
+@    s2 legend "Lower leaflet"
+@TYPE xy
+# Atom C210:
+1     -0.0354  -0.0551  -0.0062 
+# Atom C215:
+2     -0.0791  -0.0996  -0.0500 
