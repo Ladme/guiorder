@@ -734,11 +734,10 @@ impl GuiAnalysis {
             Self::label_with_hint(
                 ui,
                 label,
-                "Flip the leaflet assignment. Upper leaflet will become the lower leaflet and vice versa.",
+                "Check the box if you want to flip the leaflet assignment. Upper leaflet will become the lower leaflet and vice versa.",
             );
 
-            ui.radio_value(flip, true, "true");
-            ui.radio_value(flip, false, "false");
+            ui.checkbox(flip, "");
         });
     }
 
