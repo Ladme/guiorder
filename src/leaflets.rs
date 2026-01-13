@@ -84,6 +84,7 @@ pub(crate) struct LeafletClassificationParams {
     from_file_params: LeafletFromFileParams,
     from_ndx_params: LeafletFromNdxParams,
     frequency: Frequency,
+    flip: bool,
     membrane_normal: Option<MembraneNormal>,
 }
 
@@ -103,6 +104,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
 
@@ -114,6 +116,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
 
@@ -124,6 +127,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
 
@@ -132,6 +136,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         heads: params.heads().clone(),
                     },
                     frequency: params.frequency(),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
 
@@ -140,6 +145,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         heads: params.heads().clone(),
                     },
                     frequency: params.frequency(),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
 
@@ -148,6 +154,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         file: params.file().clone(),
                     },
                     frequency: params.frequency(),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
                 gorder::input::LeafletClassification::FromNdx(params) => Ok(Self {
@@ -158,6 +165,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                         lower_leaflet: params.lower_leaflet().clone(),
                     },
                     frequency: params.frequency(),
+                    flip: params.flip(),
                     ..Default::default()
                 }),
                 gorder::input::LeafletClassification::FromMap(_) => {
@@ -194,7 +202,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.global_params.membrane,
                     &params.global_params.heads,
                 )
-                .with_frequency(params.frequency),
+                .with_frequency(params.frequency)
+                .with_flip(params.flip),
                 params.membrane_normal,
             ))),
             LeafletClassification::Local => Ok(Some(add_normal(
@@ -203,7 +212,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.local_params.heads,
                     params.local_params.radius,
                 )
-                .with_frequency(params.frequency),
+                .with_frequency(params.frequency)
+                .with_flip(params.flip),
                 params.membrane_normal,
             ))),
             LeafletClassification::Individual => Ok(Some(add_normal(
@@ -211,22 +221,26 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.individual_params.heads,
                     &params.individual_params.methyls,
                 )
-                .with_frequency(params.frequency),
+                .with_frequency(params.frequency)
+                .with_flip(params.flip),
                 params.membrane_normal,
             ))),
             LeafletClassification::SphericalClustering => Ok(Some(
                 gorder::input::LeafletClassification::spherical_clustering(
                     &params.spherical_clustering_params.heads,
                 )
-                .with_frequency(params.frequency),
+                .with_frequency(params.frequency)
+                .with_flip(params.flip),
             )),
             LeafletClassification::Clustering => Ok(Some(
                 gorder::input::LeafletClassification::clustering(&params.clustering_params.heads)
-                    .with_frequency(params.frequency),
+                    .with_frequency(params.frequency)
+                    .with_flip(params.flip),
             )),
             LeafletClassification::FromFile => Ok(Some(
                 gorder::input::LeafletClassification::from_file(&params.from_file_params.file)
-                    .with_frequency(params.frequency),
+                    .with_frequency(params.frequency)
+                    .with_flip(params.flip),
             )),
             LeafletClassification::FromNdx => Ok(Some(
                 gorder::input::LeafletClassification::from_ndx(
@@ -240,7 +254,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.from_ndx_params.upper_leaflet,
                     &params.from_ndx_params.lower_leaflet,
                 )
-                .with_frequency(params.frequency),
+                .with_frequency(params.frequency)
+                .with_flip(params.flip),
             )),
         }
     }
@@ -567,6 +582,11 @@ impl GuiAnalysis {
                             "Frequency:       ",
                         );
                         self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:            ",
+                        );
                     }
                     LeafletClassification::Local => {
                         self.leaflet_classification_params.local_params.specify(ui);
@@ -578,6 +598,11 @@ impl GuiAnalysis {
                         );
 
                         self.specify_leaflet_membrane_normal(ui, "Membrane normal:");
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:           ",
+                        );
                     }
                     LeafletClassification::Individual => {
                         self.leaflet_classification_params
@@ -591,6 +616,11 @@ impl GuiAnalysis {
                         );
 
                         self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:            ",
+                        );
                     }
                     LeafletClassification::SphericalClustering => {
                         self.leaflet_classification_params
@@ -601,6 +631,11 @@ impl GuiAnalysis {
                             &mut self.leaflet_classification_params.frequency,
                             ui,
                             "Frequency:   ",
+                        );
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:        ",
                         );
                     }
                     LeafletClassification::Clustering => {
@@ -613,6 +648,11 @@ impl GuiAnalysis {
                             ui,
                             "Frequency:   ",
                         );
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:        ",
+                        );
                     }
                     LeafletClassification::FromFile => {
                         self.leaflet_classification_params
@@ -624,6 +664,11 @@ impl GuiAnalysis {
                             ui,
                             "Frequency:   ",
                         );
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:        ",
+                        );
                     }
                     LeafletClassification::FromNdx => {
                         self.leaflet_classification_params
@@ -634,6 +679,11 @@ impl GuiAnalysis {
                             &mut self.leaflet_classification_params.frequency,
                             ui,
                             "Frequency:     ",
+                        );
+                        Self::specify_flip(
+                            &mut self.leaflet_classification_params.flip,
+                            ui,
+                            "Flip:          ",
                         );
                     }
                 });
@@ -675,6 +725,20 @@ impl GuiAnalysis {
                     *frequency = Frequency::every(n).unwrap();
                 }
             }
+        });
+    }
+
+    /// Specify the flip option for leaflet assignment.
+    fn specify_flip(flip: &mut bool, ui: &mut Ui, label: &str) {
+        ui.horizontal(|ui| {
+            Self::label_with_hint(
+                ui,
+                label,
+                "Flip the leaflet assignment. Upper leaflet will become the lower leaflet and vice versa.",
+            );
+
+            ui.radio_value(flip, true, "true");
+            ui.radio_value(flip, false, "false");
         });
     }
 
