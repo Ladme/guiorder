@@ -18,6 +18,7 @@ pub(crate) enum LeafletClassification {
     Global,
     Local,
     Individual,
+    SphericalClustering,
     Clustering,
     FromFile,
     FromNdx,
@@ -34,6 +35,9 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                 gorder::input::LeafletClassification::Local(_) => Ok(LeafletClassification::Local),
                 gorder::input::LeafletClassification::Individual(_) => {
                     Ok(LeafletClassification::Individual)
+                }
+                gorder::input::LeafletClassification::SphericalClustering(_) => {
+                    Ok(LeafletClassification::SphericalClustering)
                 }
                 gorder::input::LeafletClassification::Clustering(_) => {
                     Ok(LeafletClassification::Clustering)
@@ -61,6 +65,7 @@ impl Display for LeafletClassification {
             LeafletClassification::Global => write!(f, "global"),
             LeafletClassification::Local => write!(f, "local"),
             LeafletClassification::Individual => write!(f, "individual"),
+            LeafletClassification::SphericalClustering => write!(f, "spherical clustering"),
             LeafletClassification::Clustering => write!(f, "clustering"),
             LeafletClassification::FromFile => write!(f, "leaflet assignment file"),
             LeafletClassification::FromNdx => write!(f, "NDX files"),
@@ -74,6 +79,7 @@ pub(crate) struct LeafletClassificationParams {
     global_params: LeafletGlobalParams,
     local_params: LeafletLocalParams,
     individual_params: LeafletIndividualParams,
+    spherical_clustering_params: LeafletSphericalClusteringParams,
     clustering_params: LeafletClusteringParams,
     from_file_params: LeafletFromFileParams,
     from_ndx_params: LeafletFromNdxParams,
@@ -118,6 +124,14 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
+                    ..Default::default()
+                }),
+
+                gorder::input::LeafletClassification::SphericalClustering(params) => Ok(Self {
+                    spherical_clustering_params: LeafletSphericalClusteringParams {
+                        heads: params.heads().clone(),
+                    },
+                    frequency: params.frequency(),
                     ..Default::default()
                 }),
 
@@ -200,6 +214,12 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                 .with_frequency(params.frequency),
                 params.membrane_normal,
             ))),
+            LeafletClassification::SphericalClustering => Ok(Some(
+                gorder::input::LeafletClassification::spherical_clustering(
+                    &params.spherical_clustering_params.heads,
+                )
+                .with_frequency(params.frequency),
+            )),
             LeafletClassification::Clustering => Ok(Some(
                 gorder::input::LeafletClassification::clustering(&params.clustering_params.heads)
                     .with_frequency(params.frequency),
@@ -367,6 +387,30 @@ impl LeafletIndividualParams {
     }
 }
 
+/// Parameters for the spherical clustering assignment method.
+#[derive(Debug, Clone, Default)]
+struct LeafletSphericalClusteringParams {
+    heads: String,
+}
+
+impl LeafletSphericalClusteringParams {
+    /// Specify the parameters for the spherical clustering assignment method.
+    fn specify(&mut self, ui: &mut Ui) {
+        GuiAnalysis::specify_string(
+            &mut self.heads,
+            ui,
+            "Lipid heads: ",
+            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            true,
+        );
+    }
+
+    /// Check that all required parameters are provided.
+    fn sanity_check(&self) -> bool {
+        !self.heads.is_empty()
+    }
+}
+
 /// Parameters for the clustering assignment method.
 #[derive(Debug, Clone, Default)]
 struct LeafletClusteringParams {
@@ -490,6 +534,7 @@ impl GuiAnalysis {
                                 LeafletClassification::Global,
                                 LeafletClassification::Local,
                                 LeafletClassification::Individual,
+                                LeafletClassification::SphericalClustering,
                                 LeafletClassification::Clustering,
                                 LeafletClassification::FromFile,
                                 LeafletClassification::FromNdx,
@@ -546,6 +591,17 @@ impl GuiAnalysis {
                         );
 
                         self.specify_leaflet_membrane_normal(ui, "Membrane normal: ");
+                    }
+                    LeafletClassification::SphericalClustering => {
+                        self.leaflet_classification_params
+                            .spherical_clustering_params
+                            .specify(ui);
+
+                        Self::specify_frequency(
+                            &mut self.leaflet_classification_params.frequency,
+                            ui,
+                            "Frequency:   ",
+                        );
                     }
                     LeafletClassification::Clustering => {
                         self.leaflet_classification_params
@@ -675,6 +731,10 @@ impl GuiAnalysis {
             LeafletClassification::Individual => self
                 .leaflet_classification_params
                 .individual_params
+                .sanity_check(),
+            LeafletClassification::SphericalClustering => self
+                .leaflet_classification_params
+                .spherical_clustering_params
                 .sanity_check(),
             LeafletClassification::Clustering => self
                 .leaflet_classification_params
