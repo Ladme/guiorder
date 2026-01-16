@@ -6,7 +6,7 @@
 use std::fmt::Display;
 
 use eframe::egui::{self, RichText, Ui};
-use gorder::input::{Axis, Frequency};
+use gorder::input::{Axis, Collect, Frequency};
 
 use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
 
@@ -85,11 +85,28 @@ pub(crate) struct LeafletClassificationParams {
     from_ndx_params: LeafletFromNdxParams,
     frequency: Frequency,
     flip: bool,
+    export: String,
     membrane_normal: Option<MembraneNormal>,
 }
 
 fn convert_axis_option(axis: Option<Axis>) -> Option<MembraneNormal> {
     axis.map(|x| x.into())
+}
+
+fn convert_collect_to_string(collect: &Collect) -> String {
+    match collect {
+        Collect::Boolean(false) => String::from(""),
+        Collect::Boolean(true) => String::from("leaflets_export.yaml"),
+        Collect::File(x) => x.clone(),
+    }
+}
+
+fn convert_string_to_collect(string: &str) -> Collect {
+    if string.len() == 0 {
+        Collect::Boolean(false)
+    } else {
+        Collect::File(string.to_owned())
+    }
 }
 
 impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassificationParams {
@@ -105,6 +122,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
                     flip: params.flip(),
+                    export: convert_collect_to_string(params.collect()),
                     ..Default::default()
                 }),
 
@@ -117,6 +135,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
                     flip: params.flip(),
+                    export: convert_collect_to_string(params.collect()),
                     ..Default::default()
                 }),
 
@@ -128,6 +147,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     frequency: params.frequency(),
                     membrane_normal: convert_axis_option(params.membrane_normal()),
                     flip: params.flip(),
+                    export: convert_collect_to_string(params.collect()),
                     ..Default::default()
                 }),
 
@@ -137,6 +157,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     flip: params.flip(),
+                    export: convert_collect_to_string(params.collect()),
                     ..Default::default()
                 }),
 
@@ -146,6 +167,7 @@ impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassifica
                     },
                     frequency: params.frequency(),
                     flip: params.flip(),
+                    export: convert_collect_to_string(params.collect()),
                     ..Default::default()
                 }),
 
@@ -203,7 +225,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.global_params.heads,
                 )
                 .with_frequency(params.frequency)
-                .with_flip(params.flip),
+                .with_flip(params.flip)
+                .with_collect(convert_string_to_collect(&params.export)),
                 params.membrane_normal,
             ))),
             LeafletClassification::Local => Ok(Some(add_normal(
@@ -213,7 +236,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     params.local_params.radius,
                 )
                 .with_frequency(params.frequency)
-                .with_flip(params.flip),
+                .with_flip(params.flip)
+                .with_collect(convert_string_to_collect(&params.export)),
                 params.membrane_normal,
             ))),
             LeafletClassification::Individual => Ok(Some(add_normal(
@@ -222,7 +246,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.individual_params.methyls,
                 )
                 .with_frequency(params.frequency)
-                .with_flip(params.flip),
+                .with_flip(params.flip)
+                .with_collect(convert_string_to_collect(&params.export)),
                 params.membrane_normal,
             ))),
             LeafletClassification::SphericalClustering => Ok(Some(
@@ -230,12 +255,14 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::LeafletClassification> {
                     &params.spherical_clustering_params.heads,
                 )
                 .with_frequency(params.frequency)
-                .with_flip(params.flip),
+                .with_flip(params.flip)
+                .with_collect(convert_string_to_collect(&params.export)),
             )),
             LeafletClassification::Clustering => Ok(Some(
                 gorder::input::LeafletClassification::clustering(&params.clustering_params.heads)
                     .with_frequency(params.frequency)
-                    .with_flip(params.flip),
+                    .with_flip(params.flip)
+                    .with_collect(convert_string_to_collect(&params.export)),
             )),
             LeafletClassification::FromFile => Ok(Some(
                 gorder::input::LeafletClassification::from_file(&params.from_file_params.file)
@@ -414,7 +441,7 @@ impl LeafletSphericalClusteringParams {
         GuiAnalysis::specify_string(
             &mut self.heads,
             ui,
-            "Lipid heads: ",
+            "Lipid heads:    ",
             "Selection of lipid atoms representing lipid heads. One atom per molecule!",
             true,
         );
@@ -438,7 +465,7 @@ impl LeafletClusteringParams {
         GuiAnalysis::specify_string(
             &mut self.heads,
             ui,
-            "Lipid heads: ",
+            "Lipid heads:    ",
             "Selection of lipid atoms representing lipid heads. One atom per molecule!",
             true,
         );
@@ -587,6 +614,11 @@ impl GuiAnalysis {
                             ui,
                             "Flip:            ",
                         );
+                        Self::specify_export(
+                            &mut self.leaflet_classification_params.export,
+                            ui,
+                            "Export leaflets: ",
+                        );
                     }
                     LeafletClassification::Local => {
                         self.leaflet_classification_params.local_params.specify(ui);
@@ -602,6 +634,11 @@ impl GuiAnalysis {
                             &mut self.leaflet_classification_params.flip,
                             ui,
                             "Flip:           ",
+                        );
+                        Self::specify_export(
+                            &mut self.leaflet_classification_params.export,
+                            ui,
+                            "Export leaflets:",
                         );
                     }
                     LeafletClassification::Individual => {
@@ -621,6 +658,11 @@ impl GuiAnalysis {
                             ui,
                             "Flip:            ",
                         );
+                        Self::specify_export(
+                            &mut self.leaflet_classification_params.export,
+                            ui,
+                            "Export leaflets: ",
+                        );
                     }
                     LeafletClassification::SphericalClustering => {
                         self.leaflet_classification_params
@@ -630,12 +672,17 @@ impl GuiAnalysis {
                         Self::specify_frequency(
                             &mut self.leaflet_classification_params.frequency,
                             ui,
-                            "Frequency:   ",
+                            "Frequency:      ",
                         );
                         Self::specify_flip(
                             &mut self.leaflet_classification_params.flip,
                             ui,
-                            "Flip:        ",
+                            "Flip:           ",
+                        );
+                        Self::specify_export(
+                            &mut self.leaflet_classification_params.export,
+                            ui,
+                            "Export leaflets:",
                         );
                     }
                     LeafletClassification::Clustering => {
@@ -646,12 +693,17 @@ impl GuiAnalysis {
                         Self::specify_frequency(
                             &mut self.leaflet_classification_params.frequency,
                             ui,
-                            "Frequency:   ",
+                            "Frequency:      ",
                         );
                         Self::specify_flip(
                             &mut self.leaflet_classification_params.flip,
                             ui,
-                            "Flip:        ",
+                            "Flip:           ",
+                        );
+                        Self::specify_export(
+                            &mut self.leaflet_classification_params.export,
+                            ui,
+                            "Export leaflets:",
                         );
                     }
                     LeafletClassification::FromFile => {
@@ -739,6 +791,17 @@ impl GuiAnalysis {
 
             ui.checkbox(flip, "");
         });
+    }
+
+    /// Specify the export option for leaflet assignment.
+    fn specify_export(export: &mut String, ui: &mut Ui, label: &str) {
+        Self::specify_string(
+            export,
+            ui,
+            label,
+            "Path to an output YAML file where leaflet assignment data will be written. Leave empty to not write out leaflet assignment data.",
+            false,
+        );
     }
 
     /// Specify the membrane normal for leaflet assignment.
