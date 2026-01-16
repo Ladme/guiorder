@@ -340,7 +340,7 @@ impl LeafletLocalParams {
             &mut self.heads,
             ui,
             "Lipid heads:    ",
-            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            "Selection of atoms representing lipid heads. One atom per molecule!",
             true,
         );
 
@@ -398,7 +398,7 @@ impl LeafletIndividualParams {
             &mut self.heads,
             ui,
             "Lipid heads:     ",
-            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            "Selection of atoms representing lipid heads. One atom per molecule!",
             true,
         );
 
@@ -406,7 +406,7 @@ impl LeafletIndividualParams {
             &mut self.methyls,
             ui,
             "Lipid methyls:   ",
-            "Selection of lipid atoms representing ends of lipid tails.",
+            "Selection of atoms representing ends of lipid tails.",
             true,
         );
     }
@@ -430,7 +430,7 @@ impl LeafletSphericalClusteringParams {
             &mut self.heads,
             ui,
             "Lipid heads:    ",
-            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            "Selection of atoms representing lipid heads. One atom per molecule!",
             true,
         );
     }
@@ -454,7 +454,7 @@ impl LeafletClusteringParams {
             &mut self.heads,
             ui,
             "Lipid heads:    ",
-            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            "Selection of atoms representing lipid heads. One atom per molecule!",
             true,
         );
     }
@@ -512,7 +512,7 @@ impl LeafletFromNdxParams {
             &mut self.heads,
             ui,
             "Lipid heads:   ",
-            "Selection of lipid atoms representing lipid heads. One atom per molecule!",
+            "Selection of atoms representing lipid heads. One atom per molecule!",
             true,
         );
         GuiAnalysis::specify_string(
