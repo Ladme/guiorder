@@ -97,7 +97,7 @@ pub(crate) fn convert_collect_to_string(collect: &Collect) -> String {
 }
 
 pub(crate) fn convert_string_to_collect(string: &str) -> Collect {
-    if string.len() == 0 {
+    if string.is_empty() {
         Collect::Boolean(false)
     } else {
         Collect::File(string.to_owned())

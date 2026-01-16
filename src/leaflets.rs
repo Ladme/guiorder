@@ -6,7 +6,7 @@
 use std::fmt::Display;
 
 use eframe::egui::{self, RichText, Ui};
-use gorder::input::{Axis, Collect, Frequency};
+use gorder::input::{Axis, Frequency};
 
 use crate::{
     common::{convert_collect_to_string, convert_string_to_collect, MembraneNormal},
