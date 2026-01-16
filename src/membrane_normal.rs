@@ -6,13 +6,18 @@
 use eframe::egui::{self, RichText, Ui};
 use gorder::input::{Axis, DynamicNormal};
 
-use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
+use crate::{
+    common::{convert_collect_to_string, convert_string_to_collect, MembraneNormal},
+    error::ConversionError,
+    GuiAnalysis,
+};
 
 /// Parameters for dynamic membrane normal calculations.
 #[derive(Debug, Clone)]
 pub(crate) struct DynamicNormalParams {
     heads: String,
     radius: f32,
+    export: String,
 }
 
 impl Default for DynamicNormalParams {
@@ -20,6 +25,7 @@ impl Default for DynamicNormalParams {
         DynamicNormalParams {
             heads: String::new(),
             radius: 2.0,
+            export: String::new(),
         }
     }
 }
@@ -31,6 +37,7 @@ impl TryFrom<gorder::input::MembraneNormal> for DynamicNormalParams {
             gorder::input::MembraneNormal::Dynamic(dynamic) => Ok(Self {
                 heads: dynamic.heads().clone(),
                 radius: dynamic.radius(),
+                export: convert_collect_to_string(dynamic.collect()),
             }),
             gorder::input::MembraneNormal::FromMap(_) => Err(ConversionError::FromMapNormals),
             gorder::input::MembraneNormal::Static(_) => Ok(Self::default()),
@@ -55,7 +62,10 @@ impl TryFrom<&GuiAnalysis> for gorder::input::MembraneNormal {
                     &value.dynamic_normal_params.heads,
                     value.dynamic_normal_params.radius,
                 )
-                .map_err(|e| ConversionError::InvalidMembraneNormal(e.to_string()))?,
+                .map_err(|e| ConversionError::InvalidMembraneNormal(e.to_string()))?
+                .with_collect(convert_string_to_collect(
+                    &value.dynamic_normal_params.export,
+                )),
             )),
         }
     }
@@ -97,7 +107,7 @@ impl GuiAnalysis {
                         Self::specify_string(
                             &mut self.dynamic_normal_params.heads,
                             ui,
-                            "Lipid heads: ",
+                            "Lipid heads:   ",
                             "Selection of lipid atoms representing lipid heads. One atom per molecule!",
                             true,
                         );
@@ -105,7 +115,7 @@ impl GuiAnalysis {
                         ui.horizontal(|ui| {
                             let label = Self::label_with_hint(
                                 ui,
-                                "Radius:      ",
+                                "Radius:        ",
                                 "Radius of the scanning sphere for identification of nearby lipid heads."
                             );
 
@@ -126,6 +136,14 @@ impl GuiAnalysis {
                                 );
                             }
                         });
+
+                        Self::specify_string(
+                            &mut self.dynamic_normal_params.export,
+                            ui,
+                            "Export normals:",
+                            "Path to an output YAML file where computed membrane normals will be written. Leave empty to not write out membrane normals.",
+                            false,
+                        );
                     });
                 } else if self.membrane_normal == MembraneNormal::FromFile {
                     GuiAnalysis::specify_input_file(
@@ -223,6 +241,7 @@ mod tests {
             dynamic_normal_params: DynamicNormalParams {
                 heads: String::from("name P"),
                 radius: 1.75,
+                export: String::new(),
             },
             ..Default::default()
         };

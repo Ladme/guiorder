@@ -8,7 +8,11 @@ use std::fmt::Display;
 use eframe::egui::{self, RichText, Ui};
 use gorder::input::{Axis, Collect, Frequency};
 
-use crate::{common::MembraneNormal, error::ConversionError, GuiAnalysis};
+use crate::{
+    common::{convert_collect_to_string, convert_string_to_collect, MembraneNormal},
+    error::ConversionError,
+    GuiAnalysis,
+};
 
 /// Leaflet assignment method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -91,22 +95,6 @@ pub(crate) struct LeafletClassificationParams {
 
 fn convert_axis_option(axis: Option<Axis>) -> Option<MembraneNormal> {
     axis.map(|x| x.into())
-}
-
-fn convert_collect_to_string(collect: &Collect) -> String {
-    match collect {
-        Collect::Boolean(false) => String::from(""),
-        Collect::Boolean(true) => String::from("leaflets_export.yaml"),
-        Collect::File(x) => x.clone(),
-    }
-}
-
-fn convert_string_to_collect(string: &str) -> Collect {
-    if string.len() == 0 {
-        Collect::Boolean(false)
-    } else {
-        Collect::File(string.to_owned())
-    }
 }
 
 impl TryFrom<Option<gorder::input::LeafletClassification>> for LeafletClassificationParams {

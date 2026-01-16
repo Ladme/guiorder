@@ -63,7 +63,7 @@ impl GuiAnalysis {
                 Self::label_with_hint(
                     ui,
                     "Begin: ",
-                    "Start to read the trajectory from this time.",
+                    "Start reading the trajectory from this time.",
                 );
 
                 ui.add(

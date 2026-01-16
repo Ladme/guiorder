@@ -4,7 +4,7 @@
 //! Common structures and methods.
 
 use eframe::egui::{self, CollapsingResponse, CursorIcon, Response, RichText, Ui};
-use gorder::input::Axis;
+use gorder::input::{Axis, Collect};
 
 use crate::{
     analysis_types::{AnalysisType, AnalysisTypeParams},
@@ -85,6 +85,22 @@ impl TryFrom<gorder::input::MembraneNormal> for MembraneNormal {
             gorder::input::MembraneNormal::FromFile(_) => Ok(Self::FromFile),
             gorder::input::MembraneNormal::FromMap(_) => Err(ConversionError::FromMapNormals),
         }
+    }
+}
+
+pub(crate) fn convert_collect_to_string(collect: &Collect) -> String {
+    match collect {
+        Collect::Boolean(false) => String::from(""),
+        Collect::Boolean(true) => String::from("leaflets_export.yaml"),
+        Collect::File(x) => x.clone(),
+    }
+}
+
+pub(crate) fn convert_string_to_collect(string: &str) -> Collect {
+    if string.len() == 0 {
+        Collect::Boolean(false)
+    } else {
+        Collect::File(string.to_owned())
     }
 }
 
