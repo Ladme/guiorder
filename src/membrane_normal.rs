@@ -174,7 +174,7 @@ impl GuiAnalysis {
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
-    use gorder::input::DynamicNormal;
+    use gorder::input::{Collect, DynamicNormal};
 
     use super::*;
 
@@ -186,6 +186,20 @@ mod tests {
         .unwrap();
 
         assert_eq!(params.heads, String::from("name P"));
+        assert_relative_eq!(params.radius, 2.5);
+    }
+
+    #[test]
+    fn gorder_to_guiorder_dynamic_normal_params_with_collect() {
+        let params = DynamicNormalParams::try_from(gorder::input::MembraneNormal::Dynamic(
+            DynamicNormal::new("name P", 2.5)
+                .unwrap()
+                .with_collect("normals.yaml"),
+        ))
+        .unwrap();
+
+        assert_eq!(params.heads, String::from("name P"));
+        assert_eq!(params.export, String::from("normals.yaml"));
         assert_relative_eq!(params.radius, 2.5);
     }
 
@@ -250,6 +264,32 @@ mod tests {
             gorder::input::MembraneNormal::Dynamic(converted) => {
                 assert_eq!(converted.heads(), &String::from("name P"));
                 assert_relative_eq!(converted.radius(), 1.75);
+                assert!(matches!(converted.collect(), Collect::Boolean(false)));
+            }
+            _ => panic!("Invalid membrane normal."),
+        }
+    }
+
+    #[test]
+    fn guiorder_to_gorder_membrane_normal_dynamic_with_export() {
+        let params = GuiAnalysis {
+            membrane_normal: MembraneNormal::Dynamic,
+            dynamic_normal_params: DynamicNormalParams {
+                heads: String::from("name P"),
+                radius: 1.75,
+                export: String::from("normals.yaml"),
+            },
+            ..Default::default()
+        };
+
+        match gorder::input::MembraneNormal::try_from(&params).unwrap() {
+            gorder::input::MembraneNormal::Dynamic(converted) => {
+                assert_eq!(converted.heads(), &String::from("name P"));
+                assert_relative_eq!(converted.radius(), 1.75);
+                assert!(matches!(
+                    converted.collect(),
+                    Collect::File(s) if s == "normals.yaml"
+                ));
             }
             _ => panic!("Invalid membrane normal."),
         }

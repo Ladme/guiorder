@@ -22,6 +22,8 @@ leaflets: !Global
   heads: name P
   frequency: Once
   membrane_normal: null
+  collect: false
+  flip: false
 map:
   output_directory: temporary/ordermaps
   min_samples: 2
