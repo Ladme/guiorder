@@ -1,6 +1,6 @@
 [package]
 name = "guiorder"
-version = "0.1.0"
+version = "1.3.0"
 edition = "2021"
 description = "GUI for the gorder package"
 rust-version = "1.82"
