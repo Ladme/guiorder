@@ -31,12 +31,14 @@ mod window;
 
 pub const GUIORDER_VERSION: &str = env!("CARGO_PKG_VERSION");
 const LINE_SPACING: f32 = 10.0;
+const DEFAULT_WIDTH: f32 = 465.0;
+const DEFAULT_HEIGHT: f32 = 640.0;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([465.0, 640.0])
-            .with_resizable(false),
+            .with_inner_size([DEFAULT_WIDTH, DEFAULT_HEIGHT])
+            .with_resizable(true),
         ..Default::default()
     };
 
@@ -65,6 +67,19 @@ pub(crate) struct GuiOrderApp {
 
 impl eframe::App for GuiOrderApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let screen_rect = ctx.input(|i| i.screen_rect);
+        let pixels_per_point = ctx.pixels_per_point();
+
+        let physical_width = screen_rect.width() * pixels_per_point;
+        let physical_height = screen_rect.height() * pixels_per_point;
+
+        let scale_x = physical_width / DEFAULT_WIDTH;
+        let scale_y = physical_height / DEFAULT_HEIGHT;
+        let scale = scale_x.min(scale_y).max(0.5);
+
+        let rounded_scale = (scale * 10.0).round() / 10.0;
+        ctx.set_pixels_per_point(rounded_scale);
+
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
