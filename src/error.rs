@@ -1,5 +1,5 @@
 // Released under MIT License.
-// Copyright (c) 2025 Ladislav Bartos
+// Copyright (c) 2025-2026 Ladislav Bartos
 
 //! Errors associated with guiorder.
 
