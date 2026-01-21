@@ -45,7 +45,7 @@ fn main() -> eframe::Result {
     colog::init();
 
     eframe::run_native(
-        &format!("guiorder v{}", GUIORDER_VERSION),
+        &format!("GUIorder v{}", GUIORDER_VERSION),
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
@@ -86,14 +86,13 @@ impl eframe::App for GuiOrderApp {
                 .show(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.heading(
-                            RichText::new(format!("guiorder v{}", GUIORDER_VERSION))
+                            RichText::new(format!("GUIorder v{}", GUIORDER_VERSION))
                                 .font(egui::FontId::monospace(20.0)),
                         );
                         ui.heading(
-                            RichText::new(format!(
-                                "Graphical User Interface for gorder (v{})",
-                                gorder::GORDER_VERSION
-                            ))
+                            RichText::new(
+                                "Graphical User Interface for gorder",
+                            )
                             .font(egui::FontId::monospace(15.0)),
                         );
                     });
@@ -189,7 +188,7 @@ impl eframe::App for GuiOrderApp {
                     });
 
                     ui.separator();
-
+                    
                     // display that the analysis is running
                     if *self.running.lock().unwrap() {
                         ui.horizontal(|ui| {
