@@ -137,7 +137,7 @@ impl GuiAnalysis {
                             }
                         });
 
-                        Self::specify_string(
+                        Self::specify_output_file(
                             &mut self.dynamic_normal_params.export,
                             ui,
                             "Export normals:",

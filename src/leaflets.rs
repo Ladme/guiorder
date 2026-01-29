@@ -783,7 +783,7 @@ impl GuiAnalysis {
 
     /// Specify the export option for leaflet assignment.
     fn specify_export(export: &mut String, ui: &mut Ui, label: &str) {
-        Self::specify_string(
+        Self::specify_output_file(
             export,
             ui,
             label,
