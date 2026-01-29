@@ -49,6 +49,7 @@ geometry: !Cylinder
   - 0.0
   - 8.1
   orientation: Z
+  invert: false
 handle_pbc: true
 silent: true
 overwrite: true

@@ -40,6 +40,7 @@ pub(crate) struct GeomSelectionParams {
     reference_type: GeomReferenceType,
     ref_point: Vector3D,
     ref_selection: String,
+    invert: bool,
 }
 
 impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
@@ -58,6 +59,7 @@ impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
                 reference_type: params.reference().clone().into(),
                 ref_point: get_static_reference_point(params.reference()),
                 ref_selection: get_reference_selection(params.reference()),
+                invert: params.invert(),
                 ..Default::default()
             },
             Some(gorder::input::Geometry::Cylinder(params)) => Self {
@@ -70,6 +72,7 @@ impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
                 reference_type: params.reference().clone().into(),
                 ref_point: get_static_reference_point(params.reference()),
                 ref_selection: get_reference_selection(params.reference()),
+                invert: params.invert(),
                 ..Default::default()
             },
             Some(gorder::input::Geometry::Sphere(params)) => Self {
@@ -79,6 +82,7 @@ impl From<Option<gorder::input::Geometry>> for GeomSelectionParams {
                 reference_type: params.reference().clone().into(),
                 ref_point: get_static_reference_point(params.reference()),
                 ref_selection: get_reference_selection(params.reference()),
+                invert: params.invert(),
                 ..Default::default()
             },
         }
@@ -101,7 +105,8 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::Geometry> {
                     [params.cuboid.miny, params.cuboid.maxy],
                     [params.cuboid.minz, params.cuboid.maxz],
                 )
-                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?
+                .with_invert(params.invert),
             )),
             GeomSelection::Cylinder => Ok(Some(
                 gorder::input::Geometry::cylinder(
@@ -110,11 +115,13 @@ impl TryFrom<&GuiAnalysis> for Option<gorder::input::Geometry> {
                     [params.cylinder.start, params.cylinder.end],
                     params.cylinder.orientation,
                 )
-                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+                .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?
+                .with_invert(params.invert),
             )),
             GeomSelection::Sphere => Ok(Some(
                 gorder::input::Geometry::sphere(reference, params.sphere.radius)
-                    .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?,
+                    .map_err(|e| ConversionError::InvalidGeometryParams(e.to_string()))?
+                    .with_invert(params.invert),
             )),
         }
     }
@@ -242,6 +249,19 @@ impl GeomSelectionParams {
                 });
             }
         }
+    }
+
+    /// Specify invert.
+    fn specify_invert(&mut self, ui: &mut Ui, label: &str) {
+        ui.horizontal(|ui| {
+            GuiAnalysis::label_with_hint(
+                ui,
+                label,
+                "Check the box if you want to invert the selection. Only bonds outside of the selected region will be considered.",
+            );
+
+            ui.checkbox(&mut self.invert, "");
+        });
     }
 
     /// Specify a point in 3D space.
@@ -507,6 +527,8 @@ impl GuiAnalysis {
                             "Reference:   ",
                             "Reference point to which the dimensions of the cuboid relate.",
                         );
+                        self.geom_selection_params
+                            .specify_invert(ui, "Invert:      ")
                     }
                     GeomSelection::Cylinder => {
                         self.geom_selection_params.cylinder.specify(ui);
@@ -515,6 +537,8 @@ impl GuiAnalysis {
                             "Reference:   ",
                             "Reference point to which the dimensions of the cylinder relate.",
                         );
+                        self.geom_selection_params
+                            .specify_invert(ui, "Invert:      ")
                     }
                     GeomSelection::Sphere => {
                         self.geom_selection_params.sphere.specify(ui);
@@ -523,6 +547,7 @@ impl GuiAnalysis {
                             "Center:   ",
                             "Center of the sphere.",
                         );
+                        self.geom_selection_params.specify_invert(ui, "Invert:   ")
                     }
                 }
             },
@@ -653,6 +678,34 @@ mod tests {
         assert!(params.cuboid.maxy.is_infinite());
         assert_relative_eq!(params.cuboid.minz, 0.0);
         assert_relative_eq!(params.cuboid.maxz, 4.35);
+        assert!(!params.invert);
+    }
+
+    #[test]
+    fn gorder_to_guiorder_geometry_params_cuboid_with_invert() {
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::cuboid(
+                gorder::input::GeomReference::Point(Vector3D::new(5.0, 2.5, 3.5)),
+                [-3.0, 2.0],
+                [-2.5, f32::INFINITY],
+                [0.0, 4.35],
+            )
+            .unwrap()
+            .with_invert(true),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Point);
+        assert_relative_eq!(params.ref_point.x, 5.0);
+        assert_relative_eq!(params.ref_point.y, 2.5);
+        assert_relative_eq!(params.ref_point.z, 3.5);
+
+        assert_relative_eq!(params.cuboid.minx, -3.0);
+        assert_relative_eq!(params.cuboid.maxx, 2.0);
+        assert_relative_eq!(params.cuboid.miny, -2.5);
+        assert!(params.cuboid.maxy.is_infinite());
+        assert_relative_eq!(params.cuboid.minz, 0.0);
+        assert_relative_eq!(params.cuboid.maxz, 4.35);
+        assert!(params.invert);
     }
 
     #[test]
@@ -674,6 +727,30 @@ mod tests {
         assert_relative_eq!(params.cylinder.start, -1.0);
         assert!(params.cylinder.end.is_infinite());
         assert_eq!(params.cylinder.orientation, Axis::Z);
+        assert!(!params.invert);
+    }
+
+    #[test]
+    fn gorder_to_guiorder_geometry_params_cylinder_with_invert() {
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::cylinder(
+                gorder::input::GeomReference::Selection(String::from("@protein")),
+                2.0,
+                [-1.0, f32::INFINITY],
+                gorder::input::Axis::Z,
+            )
+            .unwrap()
+            .with_invert(true),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Selection);
+        assert_eq!(params.ref_selection, String::from("@protein"));
+
+        assert_relative_eq!(params.cylinder.radius, 2.0);
+        assert_relative_eq!(params.cylinder.start, -1.0);
+        assert!(params.cylinder.end.is_infinite());
+        assert_eq!(params.cylinder.orientation, Axis::Z);
+        assert!(params.invert);
     }
 
     #[test]
@@ -684,6 +761,20 @@ mod tests {
 
         assert_eq!(params.reference_type, GeomReferenceType::Center);
         assert_relative_eq!(params.sphere.radius, 5.0);
+        assert!(!params.invert);
+    }
+
+    #[test]
+    fn gorder_to_guiorder_geometry_params_sphere_with_invert() {
+        let params = GeomSelectionParams::from(Some(
+            gorder::input::Geometry::sphere(gorder::input::GeomReference::Center, 5.0)
+                .unwrap()
+                .with_invert(true),
+        ));
+
+        assert_eq!(params.reference_type, GeomReferenceType::Center);
+        assert_relative_eq!(params.sphere.radius, 5.0);
+        assert!(params.invert)
     }
 
     #[test]
