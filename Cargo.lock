@@ -1826,7 +1826,9 @@ dependencies = [
 
 [[package]]
 name = "gorder"
-version = "1.4.0-dev"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413aa888d8e16ea40cde1b617e46ead429950c0c9e0b6cbfe01fa88262226e8c"
 dependencies = [
  "backitup",
  "clap",

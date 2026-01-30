@@ -2,8 +2,6 @@
 
 Companion tool for [`gorder`](https://github.com/VachaLab/gorder), providing a simple GUI for specifying analysis parameters and managing configuration YAML files.
 
-**⚠️ Under development. Not yet available!⚠️**
-
 ## Installation
 
 1. [Install Rust](https://www.rust-lang.org/tools/install)
