@@ -1826,9 +1826,9 @@ dependencies = [
 
 [[package]]
 name = "gorder"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413aa888d8e16ea40cde1b617e46ead429950c0c9e0b6cbfe01fa88262226e8c"
+checksum = "0d0f2a96b8d1223add0077da0bd6a3ddeba8c85bebdf0397a93b4b989fd50948"
 dependencies = [
  "backitup",
  "clap",
@@ -1938,7 +1938,7 @@ dependencies = [
 
 [[package]]
 name = "guiorder"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "approx",
  "colog",
